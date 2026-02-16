@@ -3,5 +3,5 @@ import { SearchKindDefinition, SearchResultItem } from './types';
 
 export interface ISymbolSearcher {
     readonly kind: SearchKindDefinition;
-    searchInDocument(document: vscode.TextDocument, query: string): SearchResultItem[];
+    searchInContent(content: string, uri: vscode.Uri, relativePath: string, query: string): SearchResultItem[];
 }

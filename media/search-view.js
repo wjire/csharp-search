@@ -14,14 +14,12 @@ const resultMetaEl = document.getElementById('resultMeta');
 
 const kindIcons = {
     type: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M12 12v9"/><path d="M4 7.5 12 12l8-4.5"/></svg>',
-    member: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/></svg>',
-    text: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="19" height="16" rx="2"/><path d="M8 16V8"/><path d="M6 8h4"/><path d="M6 12h3.5"/><path d="M14 16V8"/><path d="M12 8h4"/></svg>'
+    member: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/></svg>'
 };
 
 const kindLabelHints = {
     type: '类型(t:)',
-    member: '成员(m:)',
-    text: '文本(x:)'
+    member: '成员(m:)'
 };
 
 function createKindIcon(kindId) {

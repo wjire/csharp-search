@@ -8,12 +8,13 @@ export class TextSearcher implements ISymbolSearcher {
         label: '文本'
     };
 
-    public searchInDocument(document: vscode.TextDocument, query: string): SearchResultItem[] {
+    public searchInContent(content: string, uri: vscode.Uri, relativePath: string, query: string): SearchResultItem[] {
         const normalizedQuery = query.toLowerCase();
         const results: SearchResultItem[] = [];
 
-        for (let line = 0; line < document.lineCount; line += 1) {
-            const lineText = document.lineAt(line).text;
+        const lines = content.split(/\r?\n/);
+        for (let line = 0; line < lines.length; line += 1) {
+            const lineText = lines[line] ?? '';
             if (!lineText.toLowerCase().includes(normalizedQuery)) {
                 continue;
             }
@@ -24,8 +25,8 @@ export class TextSearcher implements ISymbolSearcher {
                 symbolName: preview.length > 0 ? preview : '(空行匹配)',
                 preview,
                 line,
-                uri: document.uri,
-                relativePath: vscode.workspace.asRelativePath(document.uri)
+                uri,
+                relativePath
             });
         }
 

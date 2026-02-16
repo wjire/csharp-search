@@ -1,12 +1,23 @@
 import * as vscode from 'vscode';
 import { ISymbolSearcher } from './ISymbolSearcher';
+import { SymbolIndexCache } from './SymbolIndexCache';
 import { SearchKindDefinition, SearchResultItem, SerializableSearchResultItem } from './types';
 
-export class SymbolSearchService {
+export class SymbolSearchService implements vscode.Disposable {
     private readonly searchersByKindId: Map<string, ISymbolSearcher>;
+    private readonly symbolIndexCache: SymbolIndexCache;
 
     public constructor(searchers: ISymbolSearcher[]) {
         this.searchersByKindId = new Map(searchers.map((searcher) => [searcher.kind.id, searcher]));
+        this.symbolIndexCache = new SymbolIndexCache(searchers);
+    }
+
+    public dispose(): void {
+        this.symbolIndexCache.dispose();
+    }
+
+    public async warmup(): Promise<void> {
+        await this.symbolIndexCache.ensureReady();
     }
 
     public getKinds(): SearchKindDefinition[] {
@@ -14,26 +25,11 @@ export class SymbolSearchService {
     }
 
     public async search(kindId: string, query: string): Promise<SearchResultItem[]> {
-        const normalizedQuery = query.trim();
-        if (normalizedQuery.length === 0) {
+        if (!this.searchersByKindId.has(kindId)) {
             return [];
         }
 
-        const searcher = this.searchersByKindId.get(kindId);
-        if (!searcher) {
-            return [];
-        }
-
-        const files = await vscode.workspace.findFiles('**/*.cs', '**/{bin,obj}/**');
-        const allResults: SearchResultItem[] = [];
-
-        for (const fileUri of files) {
-            const document = await vscode.workspace.openTextDocument(fileUri);
-            const results = searcher.searchInDocument(document, normalizedQuery);
-            allResults.push(...results);
-        }
-
-        return allResults.slice(0, 500);
+        return this.symbolIndexCache.search(kindId, query);
     }
 
     public toSerializable(items: SearchResultItem[]): SerializableSearchResultItem[] {

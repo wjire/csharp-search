@@ -14,16 +14,16 @@ export class TypeSearcher implements ISymbolSearcher {
         label: '类型'
     };
 
-    public searchInDocument(document: vscode.TextDocument, query: string): SearchResultItem[] {
-        const rawMatches = this.findMatches(document.getText(), query);
+    public searchInContent(content: string, uri: vscode.Uri, relativePath: string, query: string): SearchResultItem[] {
+        const rawMatches = this.findMatches(content, query);
 
         return rawMatches.map((match) => ({
             kindId: this.kind.id,
             symbolName: match.symbolName,
             preview: match.preview,
             line: match.line,
-            uri: document.uri,
-            relativePath: vscode.workspace.asRelativePath(document.uri)
+            uri,
+            relativePath
         }));
     }
 

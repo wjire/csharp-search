@@ -15,24 +15,24 @@ type TextKey = keyof typeof TEXT_MAP['zh-cn'];
  */
 const TEXT_MAP = {
     'zh-cn': {
-                'search.kind.type': '类型',
-                'search.kind.member': '成员',
-                'search.kind.text': '文本',
-                'search.match.emptyLine': '(空行匹配)',
-                'webview.input.placeholder': '输入关键字',
-                'webview.meta.searching': '搜索中...',
-                'webview.meta.noResults': '未找到结果',
-                'webview.meta.resultCount': '共 {0} 条结果'
+        'search.kind.type': '类型',
+        'search.kind.member': '成员',
+        'search.kind.text': '文本',
+        'search.match.emptyLine': '(空行匹配)',
+        'webview.input.placeholder': '输入关键字',
+        'webview.meta.searching': '搜索中...',
+        'webview.meta.noResults': '未找到结果',
+        'webview.meta.resultCount': '共 {0} 条结果'
     },
     'en': {
-                'search.kind.type': 'Type',
-                'search.kind.member': 'Member',
-                'search.kind.text': 'Text',
-                'search.match.emptyLine': '(Empty line match)',
-                'webview.input.placeholder': 'Enter keyword',
-                'webview.meta.searching': 'Searching...',
-                'webview.meta.noResults': 'No results found',
-                'webview.meta.resultCount': '{0} results'
+        'search.kind.type': 'Type',
+        'search.kind.member': 'Member',
+        'search.kind.text': 'Text',
+        'search.match.emptyLine': '(Empty line match)',
+        'webview.input.placeholder': 'Enter keyword',
+        'webview.meta.searching': 'Searching...',
+        'webview.meta.noResults': 'No results found',
+        'webview.meta.resultCount': '{0} results'
     }
 };
 
@@ -49,8 +49,8 @@ export class LanguageManager {
         const vscodeLanguage = vscode.env.language.toLowerCase();
 
         // 判断是否为中文环境
-        //this.currentLanguage = vscodeLanguage.startsWith('zh') ? 'zh-cn' : 'en';
-         this.currentLanguage = 'en';
+        this.currentLanguage = vscodeLanguage.startsWith('zh') ? 'zh-cn' : 'en';
+        // this.currentLanguage = 'en';
     }
 
     /**

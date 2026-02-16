@@ -22,6 +22,7 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
   - `Type`: class / interface / struct / enum / record.
   - `Member`: methods and member declarations.
 - Real-time search while typing.
+- Switchable match modes: `Fuzzy` / `Exact`.
 - Click a result to open file and jump to line.
 - Focus search view shortcut: `Ctrl+T` (`Cmd+T` on macOS), same as Visual Studio.
 - Incremental in-memory index with file watcher updates.
@@ -32,7 +33,7 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 - Builds an in-memory index for workspace `*.cs` files on startup.
 - Excludes `bin`, `obj`, `.git`, `.github`, `.vscode` by default.
 - Updates cache incrementally on create/change/delete events.
-- Uses case-insensitive matching and returns up to 500 results.
+- Supports `Fuzzy` / `Exact` mode switching, with case-insensitive matching, and returns up to 500 results.
 
 ### Configuration
 
@@ -94,6 +95,7 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
   - `类型`：class / interface / struct / enum / record。
   - `成员`：方法与成员声明。
 - 输入即搜，实时返回结果。
+- 支持“模糊匹配 / 精确匹配”切换。
 - 点击结果可打开文件并定位到行。
 - 聚焦搜索视图快捷键：`Ctrl+T`（macOS 为 `Cmd+T`），与 Visual Studio 一致。
 - 内存增量索引 + 文件监听更新。
@@ -104,7 +106,7 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 - 启动时构建工作区 `*.cs` 文件内存索引。
 - 默认排除 `bin`、`obj`、`.git`、`.github`、`.vscode`。
 - 文件新增/修改/删除后增量刷新缓存。
-- 关键词匹配大小写不敏感，最多返回 500 条。
+- 支持“模糊匹配 / 精确匹配”切换，匹配大小写不敏感，最多返回 500 条。
 
 ### 配置项
 

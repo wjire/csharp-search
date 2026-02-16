@@ -42,6 +42,7 @@ export class MethodSearcher implements ISymbolSearcher {
         const normalizedQuery = query.toLowerCase();
         const matches: RawMatch[] = [];
         const typeScopes = this.getTypeScopes(content);
+        const lineBreakIndexes = this.buildLineBreakIndexes(content);
 
         for (const match of content.matchAll(memberRegex)) {
             const memberName = match[1] ?? '';
@@ -50,7 +51,7 @@ export class MethodSearcher implements ISymbolSearcher {
             }
 
             const start = match.index ?? 0;
-            const line = this.getLineNumber(content, start);
+            const line = this.getLineNumber(lineBreakIndexes, start);
             const preview = (match[0] ?? '').replace(/\s+/g, ' ').trim();
             const ownerTypeName = this.getInnermostTypeName(typeScopes, start);
             matches.push({
@@ -138,14 +139,32 @@ export class MethodSearcher implements ISymbolSearcher {
         return containingScopes[0].name;
     }
 
-    private getLineNumber(content: string, offset: number): number {
-        let line = 0;
-        for (let index = 0; index < offset; index += 1) {
+    private buildLineBreakIndexes(content: string): number[] {
+        const indexes: number[] = [];
+
+        for (let index = 0; index < content.length; index += 1) {
             if (content.charAt(index) === '\n') {
-                line += 1;
+                indexes.push(index);
             }
         }
 
-        return line;
+        return indexes;
+    }
+
+    private getLineNumber(lineBreakIndexes: number[], offset: number): number {
+        let left = 0;
+        let right = lineBreakIndexes.length;
+
+        while (left < right) {
+            const middle = left + Math.floor((right - left) / 2);
+            if (lineBreakIndexes[middle] < offset) {
+                left = middle + 1;
+                continue;
+            }
+
+            right = middle;
+        }
+
+        return left;
     }
 }

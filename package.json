@@ -1,7 +1,7 @@
 {
     "name": "csharp-search",
-    "displayName": "C# Search",
-    "description": "Search methods, types and other C# symbols from a dedicated activity bar view.",
+    "displayName": "%extension.displayName%",
+    "description": "%extension.description%",
     "version": "1.0.0",
     "publisher": "dankit",
     "repository": {
@@ -36,7 +36,7 @@
             "activitybar": [
                 {
                     "id": "csharpSearch",
-                    "title": "C# Search",
+                    "title": "%viewContainer.title%",
                     "icon": "media/csharp-search.svg"
                 }
             ]
@@ -45,7 +45,7 @@
             "csharpSearch": [
                 {
                     "id": "csharpSearch.mainView",
-                    "name": "Search",
+                    "name": "%view.main.name%",
                     "type": "webview",
                     "icon": "media/csharp-search.svg"
                 }
@@ -53,8 +53,24 @@
         },
         "commands": [],
         "configuration": {
-            "title": "C# Search",
-            "properties": {}
+            "title": "%config.title%",
+            "properties": {
+                "csharpSearch.excludeFolders": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "bin",
+                        "obj",
+                        ".git",
+                        ".github",
+                        ".vscode"
+                    ],
+                    "scope": "resource",
+                    "markdownDescription": "%config.excludeFolders.markdownDescription%"
+                }
+            }
         }
     },
     "scripts": {

@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import { ISymbolSearcher } from '../ISymbolSearcher';
 import { SearchKindDefinition, SearchResultItem } from '../types';
+import { lang } from '../../languageManager';
 
 export class TextSearcher implements ISymbolSearcher {
     public readonly kind: SearchKindDefinition = {
         id: 'text',
-        label: '文本'
+        label: lang.t('search.kind.text')
     };
 
     public searchInContent(content: string, uri: vscode.Uri, relativePath: string, query: string): SearchResultItem[] {
@@ -22,11 +23,12 @@ export class TextSearcher implements ISymbolSearcher {
             const preview = lineText.trim();
             results.push({
                 kindId: this.kind.id,
-                symbolName: preview.length > 0 ? preview : '(空行匹配)',
+                symbolName: preview.length > 0 ? preview : lang.t('search.match.emptyLine'),
                 preview,
                 line,
                 uri,
-                relativePath
+                relativePath,
+                projectName: ''
             });
         }
 

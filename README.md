@@ -1,34 +1,139 @@
-# csharp-search
+# C# Search
 
-专为 C# 项目优化的搜索扩展，在 VS Code 左侧活动栏提供独立入口。
+[![Version](https://img.shields.io/visual-studio-marketplace/v/dankit.csharp-search)](https://marketplace.visualstudio.com/items?itemName=dankit.csharp-search)
+[![Downloads](https://img.shields.io/visual-studio-marketplace/d/dankit.csharp-search)](https://marketplace.visualstudio.com/items?itemName=dankit.csharp-search)
+[![Rating](https://img.shields.io/visual-studio-marketplace/r/dankit.csharp-search)](https://marketplace.visualstudio.com/items?itemName=dankit.csharp-search)
 
-## 当前功能
+[English](#english) | [中文](#中文)
 
-- 左侧活动栏新增 `C# Search` 入口。
-- 入口内使用单个 `WebviewView`，顶部 Tab 支持 `方法` / `类型` 切换。
-- 下方输入关键字后，扩展端按当前 Tab 搜索工作区所有 `.cs` 文件。
-- 点击结果可跳转到对应文件与行号。
+## English
 
-## 架构说明
+A focused VS Code extension for searching C# symbols from a dedicated Activity Bar view.
 
-- 搜索策略接口：`src/search/ISymbolSearcher.ts`
-- 搜索服务编排：`src/search/SymbolSearchService.ts`
-- 默认策略实现：
-	- `src/search/searchers/MethodSearcher.ts`
-	- `src/search/searchers/TypeSearcher.ts`
-- Webview 前端三文件分离：
-	- `media/search-view.html`
-	- `media/search-view.css`
-	- `media/search-view.js`
+### Preview
 
-## 扩展更多搜索类别
+![Type Search](media/images/type.png)
+![Member Search](media/images/member.png)
 
-1. 新建一个实现 `ISymbolSearcher` 的搜索器类。
-2. 在 `src/extension.ts` 中将该类注册到 `SymbolSearchService` 构造函数。
-3. Webview 会自动收到新的 `kind` 并渲染为新 Tab，无需改前端结构。
+### Features
 
-## 开发
+- Dedicated Activity Bar entry: `C# Search`.
+- Tab-based symbol search:
+  - `Type`: class / interface / struct / enum / record.
+  - `Member`: methods and member declarations.
+- Real-time search while typing.
+- Click a result to open file and jump to line.
+- Incremental in-memory index with file watcher updates.
+- Bilingual webview UI (Chinese/English) following VS Code language.
+
+### Search Behavior
+
+- Builds an in-memory index for workspace `*.cs` files on startup.
+- Excludes `bin`, `obj`, `.git`, `.github`, `.vscode` by default.
+- Updates cache incrementally on create/change/delete events.
+- Uses case-insensitive matching and returns up to 500 results.
+
+### Configuration
+
+#### `csharpSearch.excludeFolders`
+
+- Type: `string[]`
+- Default: `['bin', 'obj', '.git', '.github', '.vscode']`
+- Description: Folder names excluded from indexing (matches at any path depth).
+
+### Localization
+
+- Webview texts are provided by the extension host and switch automatically via `vscode.env.language`.
+- Manifest strings are localized through VS Code `package.nls` files:
+  - `package.nls.json` (default/en)
+  - `package.nls.zh-cn.json` (zh-cn)
+
+### Project Structure
+
+- `src/search/ISymbolSearcher.ts`: search strategy interface.
+- `src/search/SymbolSearchService.ts`: search orchestration.
+- `src/search/SymbolIndexCache.ts`: symbol index + file watching.
+- `src/search/searchers/TypeSearcher.ts`: type search strategy.
+- `src/search/searchers/MethodSearcher.ts`: member search strategy.
+- `src/webview/CSharpSearchViewProvider.ts`: webview message bridge.
+- `media/search-view.*`: webview UI.
+
+### Development
+
+- Install dependencies: `npm install`
+- Build: `npm run compile`
+- Watch mode: `npm run watch`
+- Debug extension: press `F5`
+
+### Repository
+
+- GitHub: https://github.com/wjire/csharp-Search
+- Gitee: https://gitee.com/dankit/csharp-search
+
+## 中文
+
+一个专注于 C# 符号检索的 VS Code 扩展，提供独立的活动栏搜索视图。
+
+### 预览
+
+![类型搜索](media/images/type.png)
+![成员搜索](media/images/member.png)
+
+### 功能特性
+
+- 活动栏独立入口：`C# Search`。
+- 按类别检索符号：
+  - `类型`：class / interface / struct / enum / record。
+  - `成员`：方法与成员声明。
+- 输入即搜，实时返回结果。
+- 点击结果可打开文件并定位到行。
+- 内存增量索引 + 文件监听更新。
+- Webview 界面支持中英双语并跟随 VS Code 语言。
+
+### 搜索逻辑
+
+- 启动时构建工作区 `*.cs` 文件内存索引。
+- 默认排除 `bin`、`obj`、`.git`、`.github`、`.vscode`。
+- 文件新增/修改/删除后增量刷新缓存。
+- 关键词匹配大小写不敏感，最多返回 500 条。
+
+### 配置项
+
+#### `csharpSearch.excludeFolders`
+
+- 类型：`string[]`
+- 默认：`['bin', 'obj', '.git', '.github', '.vscode']`
+- 说明：按目录名排除索引，匹配工作区路径任意层级。
+
+### 本地化
+
+- Webview 文案由扩展端下发，基于 `vscode.env.language` 自动切换。
+- 扩展清单文案使用 VS Code 的 `package.nls` 机制：
+  - `package.nls.json`（默认/英文）
+  - `package.nls.zh-cn.json`（中文）
+
+### 目录结构
+
+- `src/search/ISymbolSearcher.ts`：搜索策略接口。
+- `src/search/SymbolSearchService.ts`：搜索编排。
+- `src/search/SymbolIndexCache.ts`：符号索引与文件监听。
+- `src/search/searchers/TypeSearcher.ts`：类型检索。
+- `src/search/searchers/MethodSearcher.ts`：成员检索。
+- `src/webview/CSharpSearchViewProvider.ts`：Webview 消息桥接。
+- `media/search-view.*`：Webview 前端。
+
+### 开发
 
 - 安装依赖：`npm install`
 - 编译：`npm run compile`
-- 调试运行：按 `F5` 启动 Extension Development Host
+- 监听编译：`npm run watch`
+- 启动调试：按 `F5`
+
+### 仓库地址
+
+- GitHub: https://github.com/wjire/csharp-Search
+- Gitee: https://gitee.com/dankit/csharp-search
+
+## License
+
+MIT

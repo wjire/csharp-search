@@ -39,7 +39,9 @@ export class SymbolSearchService implements vscode.Disposable {
             preview: item.preview,
             line: item.line,
             uri: item.uri.toString(),
-            relativePath: item.relativePath
+            relativePath: item.relativePath,
+            projectName: item.projectName,
+            ownerTypeName: item.ownerTypeName
         }));
     }
 }

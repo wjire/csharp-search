@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { SymbolSearchService } from '../search/SymbolSearchService';
 import { SerializableSearchResultItem } from '../search/types';
 import { WebviewContentBuilder } from './WebviewContentBuilder';
+import { lang } from '../languageManager';
 
 interface SearchMessage {
     type: 'search';
@@ -69,7 +70,8 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider {
         webview.postMessage({
             type: 'init',
             kinds,
-            activeKindId: kinds[0]?.id ?? ''
+            activeKindId: kinds[0]?.id ?? '',
+            texts: lang.getWebViewTexts()
         });
     }
 

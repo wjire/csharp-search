@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ISymbolSearcher } from '../ISymbolSearcher';
 import { SearchKindDefinition, SearchResultItem } from '../types';
+import { lang } from '../../languageManager';
 
 interface RawMatch {
     symbolName: string;
@@ -11,7 +12,7 @@ interface RawMatch {
 export class TypeSearcher implements ISymbolSearcher {
     public readonly kind: SearchKindDefinition = {
         id: 'type',
-        label: '类型'
+        label: lang.t('search.kind.type')
     };
 
     public searchInContent(content: string, uri: vscode.Uri, relativePath: string, query: string): SearchResultItem[] {
@@ -23,7 +24,8 @@ export class TypeSearcher implements ISymbolSearcher {
             preview: match.preview,
             line: match.line,
             uri,
-            relativePath
+            relativePath,
+            projectName: ''
         }));
     }
 

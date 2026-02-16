@@ -12,6 +12,8 @@ export interface SearchResultItem {
     line: number;
     uri: vscode.Uri;
     relativePath: string;
+    projectName: string;
+    ownerTypeName?: string;
 }
 
 export interface SerializableSearchResultItem {
@@ -21,4 +23,6 @@ export interface SerializableSearchResultItem {
     line: number;
     uri: string;
     relativePath: string;
+    projectName: string;
+    ownerTypeName?: string;
 }

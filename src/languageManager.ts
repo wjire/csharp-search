@@ -1,0 +1,119 @@
+import * as vscode from 'vscode';
+
+/**
+ * 语言类型
+ */
+type Language = 'zh-cn' | 'en';
+
+/**
+ * 文本键类型
+ */
+type TextKey = keyof typeof TEXT_MAP['zh-cn'];
+
+/**
+ * 中英文文本映射
+ */
+const TEXT_MAP = {
+    'zh-cn': {
+                'search.kind.type': '类型',
+                'search.kind.member': '成员',
+                'search.kind.text': '文本',
+                'search.match.emptyLine': '(空行匹配)',
+                'webview.input.placeholder': '输入关键字',
+                'webview.meta.searching': '搜索中...',
+                'webview.meta.noResults': '未找到结果',
+                'webview.meta.resultCount': '共 {0} 条结果'
+    },
+    'en': {
+                'search.kind.type': 'Type',
+                'search.kind.member': 'Member',
+                'search.kind.text': 'Text',
+                'search.match.emptyLine': '(Empty line match)',
+                'webview.input.placeholder': 'Enter keyword',
+                'webview.meta.searching': 'Searching...',
+                'webview.meta.noResults': 'No results found',
+                'webview.meta.resultCount': '{0} results'
+    }
+};
+
+/**
+ * 语言管理器
+ * 根据 VSCode 语言环境自动选择中文或英文
+ */
+export class LanguageManager {
+    private static instance: LanguageManager;
+    private currentLanguage: Language;
+
+    private constructor() {
+        // 获取 VSCode 语言环境
+        const vscodeLanguage = vscode.env.language.toLowerCase();
+
+        // 判断是否为中文环境
+        //this.currentLanguage = vscodeLanguage.startsWith('zh') ? 'zh-cn' : 'en';
+         this.currentLanguage = 'en';
+    }
+
+    /**
+     * 获取单例实例
+     */
+    public static getInstance(): LanguageManager {
+        if (!LanguageManager.instance) {
+            LanguageManager.instance = new LanguageManager();
+        }
+        return LanguageManager.instance;
+    }
+
+    /**
+     * 获取当前语言
+     */
+    public getCurrentLanguage(): Language {
+        return this.currentLanguage;
+    }
+
+    /**
+     * 获取文本
+     * @param key 文本键
+     * @param args 格式化参数（替换 {0}, {1}, ...）
+     */
+    public getText(key: TextKey, ...args: any[]): string {
+        let text = TEXT_MAP[this.currentLanguage][key] || key;
+
+        // 替换占位符 {0}, {1}, ...
+        args.forEach((arg, index) => {
+            text = text.replace(`{${index}}`, String(arg));
+        });
+
+        return text;
+    }
+
+    /**
+     * 简写方法：快速获取文本
+     */
+    public t(key: TextKey, ...args: any[]): string {
+        return this.getText(key, ...args);
+    }
+
+    /**
+     * 获取所有 webview 相关的文本（用于传递给前端）
+     */
+    public getWebViewTexts(): Record<string, string> {
+        const texts: Record<string, string> = {};
+        const allKeys = Object.keys(TEXT_MAP[this.currentLanguage]) as TextKey[];
+
+        // 只提取 webview 相关的文本
+        allKeys.forEach(key => {
+            if (key.startsWith('webview.')) {
+                // 移除 webview. 前缀作为键
+                const shortKey = key.replace('webview.', '');
+                texts[shortKey] = TEXT_MAP[this.currentLanguage][key];
+            }
+        });
+
+        return texts;
+    }
+}
+
+/**
+ * 导出单例实例
+ */
+export const lang = LanguageManager.getInstance();

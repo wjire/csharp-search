@@ -124,6 +124,27 @@ body {
     opacity: 1;
 }
 
+.match-mode-group {
+    display: inline-flex;
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.match-mode-btn {
+    border: 0;
+    cursor: pointer;
+    padding: 4px 10px;
+    color: var(--vscode-foreground);
+    background: var(--vscode-button-secondaryBackground);
+}
+
+.match-mode-btn.active {
+    color: var(--vscode-button-foreground);
+    background: var(--vscode-button-background);
+}
+
 .result-meta {
     margin-bottom: 8px;
     color: var(--vscode-descriptionForeground);

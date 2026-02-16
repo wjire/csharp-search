@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ISymbolSearcher } from './ISymbolSearcher';
 import { SymbolIndexCache } from './SymbolIndexCache';
-import { SearchKindDefinition, SearchResultItem, SerializableSearchResultItem } from './types';
+import { SearchKindDefinition, SearchMatchMode, SearchResultItem, SerializableSearchResultItem } from './types';
 
 export class SymbolSearchService implements vscode.Disposable {
     private readonly searchersByKindId: Map<string, ISymbolSearcher>;
@@ -24,12 +24,12 @@ export class SymbolSearchService implements vscode.Disposable {
         return Array.from(this.searchersByKindId.values()).map((searcher) => searcher.kind);
     }
 
-    public async search(kindId: string, query: string): Promise<SearchResultItem[]> {
+    public async search(kindId: string, query: string, matchMode: SearchMatchMode = 'fuzzy'): Promise<SearchResultItem[]> {
         if (!this.searchersByKindId.has(kindId)) {
             return [];
         }
 
-        return this.symbolIndexCache.search(kindId, query);
+        return this.symbolIndexCache.search(kindId, query, matchMode);
     }
 
     public toSerializable(items: SearchResultItem[]): SerializableSearchResultItem[] {

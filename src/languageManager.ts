@@ -21,6 +21,9 @@ const TEXT_MAP = {
         'search.match.emptyLine': '(空行匹配)',
         'webview.input.placeholder': '输入关键字',
         'webview.input.clear': '清空输入',
+        'webview.match.modeLabel': '匹配模式',
+        'webview.match.fuzzy': '模糊匹配',
+        'webview.match.exact': '精确匹配',
         'webview.meta.searching': '搜索中...',
         'webview.meta.noResults': '未找到结果',
         'webview.meta.resultCount': '共 {0} 条结果'
@@ -32,6 +35,9 @@ const TEXT_MAP = {
         'search.match.emptyLine': '(Empty line match)',
         'webview.input.placeholder': 'Enter keyword',
         'webview.input.clear': 'Clear input',
+        'webview.match.modeLabel': 'Match mode',
+        'webview.match.fuzzy': 'Fuzzy',
+        'webview.match.exact': 'Exact',
         'webview.meta.searching': 'Searching...',
         'webview.meta.noResults': 'No results found',
         'webview.meta.resultCount': '{0} results'

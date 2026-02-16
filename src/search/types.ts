@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 
+export type SearchMatchMode = 'fuzzy' | 'exact';
+
 export interface SearchKindDefinition {
     id: string;
     label: string;

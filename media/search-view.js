@@ -3,6 +3,7 @@ const vscode = acquireVsCodeApi();
 const state = {
     activeKindId: '',
     query: '',
+    matchMode: 'fuzzy',
     requestId: 0,
     searchDebounceMs: 300,
     kinds: [],
@@ -18,6 +19,9 @@ const tabsEl = document.getElementById('tabs');
 const searchBoxEl = document.querySelector('.search-box');
 const queryInputEl = document.getElementById('queryInput');
 const clearQueryBtnEl = document.getElementById('clearQueryBtn');
+const matchModeGroupEl = document.getElementById('matchModeGroup');
+const fuzzyModeBtnEl = document.getElementById('fuzzyModeBtn');
+const exactModeBtnEl = document.getElementById('exactModeBtn');
 const resultListEl = document.getElementById('resultList');
 const resultMetaEl = document.getElementById('resultMeta');
 
@@ -91,8 +95,15 @@ function triggerSearch() {
         type: 'search',
         kindId: state.activeKindId,
         query: state.query,
+        matchMode: state.matchMode,
         requestId: currentRequestId
     });
+}
+
+function setMatchMode(matchMode) {
+    state.matchMode = matchMode === 'exact' ? 'exact' : 'fuzzy';
+    fuzzyModeBtnEl?.classList.toggle('active', state.matchMode === 'fuzzy');
+    exactModeBtnEl?.classList.toggle('active', state.matchMode === 'exact');
 }
 
 function scheduleSearch() {
@@ -260,6 +271,30 @@ clearQueryBtnEl?.addEventListener('click', () => {
     queryInputEl.focus();
 });
 
+matchModeGroupEl?.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
+
+    const mode = target.getAttribute('data-mode');
+    if (mode !== 'fuzzy' && mode !== 'exact') {
+        return;
+    }
+
+    if (state.matchMode === mode) {
+        return;
+    }
+
+    if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = undefined;
+    }
+
+    setMatchMode(mode);
+    triggerSearch();
+});
+
 window.addEventListener('message', (event) => {
     const message = event.data;
 
@@ -272,6 +307,17 @@ window.addEventListener('message', (event) => {
         const clearInputText = getText('input.clear', 'Clear input');
         clearQueryBtnEl?.setAttribute('aria-label', clearInputText);
         clearQueryBtnEl?.setAttribute('title', clearInputText);
+        const matchModeLabel = getText('match.modeLabel', 'Match mode');
+        matchModeGroupEl?.setAttribute('aria-label', matchModeLabel);
+        if (fuzzyModeBtnEl) {
+            fuzzyModeBtnEl.textContent = getText('match.fuzzy', 'Fuzzy');
+            fuzzyModeBtnEl.setAttribute('title', getText('match.fuzzy', 'Fuzzy'));
+        }
+        if (exactModeBtnEl) {
+            exactModeBtnEl.textContent = getText('match.exact', 'Exact');
+            exactModeBtnEl.setAttribute('title', getText('match.exact', 'Exact'));
+        }
+        setMatchMode(state.matchMode);
         updateClearButtonVisibility();
         renderTabs();
         return;

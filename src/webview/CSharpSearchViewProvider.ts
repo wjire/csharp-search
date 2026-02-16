@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { SymbolSearchService } from '../search/SymbolSearchService';
-import { SerializableSearchResultItem } from '../search/types';
+import { SearchMatchMode, SerializableSearchResultItem } from '../search/types';
 import { WebviewContentBuilder } from './WebviewContentBuilder';
 import { lang } from '../languageManager';
 
@@ -15,6 +15,7 @@ interface SearchMessage {
     kindId: string;
     query: string;
     requestId: string;
+    matchMode?: SearchMatchMode;
 }
 
 interface OpenResultMessage {
@@ -125,7 +126,8 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
     }
 
     private async handleSearch(message: SearchMessage, webview: vscode.Webview): Promise<void> {
-        const results = await this.searchService.search(message.kindId, message.query);
+        const matchMode: SearchMatchMode = message.matchMode === 'exact' ? 'exact' : 'fuzzy';
+        const results = await this.searchService.search(message.kindId, message.query, matchMode);
         const serializableResults: SerializableSearchResultItem[] = this.searchService.toSerializable(results);
 
         webview.postMessage({

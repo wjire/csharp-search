@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ISymbolSearcher } from './ISymbolSearcher';
-import { SearchResultItem } from './types';
+import { SearchMatchMode, SearchResultItem } from './types';
 
 const textDecoder = new TextDecoder('utf-8');
 const INITIAL_INDEX_BATCH_SIZE = 20;
@@ -72,7 +72,7 @@ export class SymbolIndexCache implements vscode.Disposable {
         await this.updateQueue;
     }
 
-    public async search(kindId: string, query: string): Promise<SearchResultItem[]> {
+    public async search(kindId: string, query: string, matchMode: SearchMatchMode = 'fuzzy'): Promise<SearchResultItem[]> {
         await this.ensureReady();
 
         const symbolsByFile = this.symbolsByKindAndFile.get(kindId);
@@ -88,7 +88,11 @@ export class SymbolIndexCache implements vscode.Disposable {
         const matched: SearchResultItem[] = [];
         for (const symbols of symbolsByFile.values()) {
             for (const symbol of symbols) {
-                if (!symbol.symbolNameLower.includes(normalizedQuery)) {
+                const isMatched = matchMode === 'exact'
+                    ? symbol.symbolNameLower === normalizedQuery
+                    : symbol.symbolNameLower.includes(normalizedQuery);
+
+                if (!isMatched) {
                     continue;
                 }
 

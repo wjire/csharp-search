@@ -1,0 +1,94 @@
+# ==========================================
+# .NET / C# 项目的 .gitignore
+# 适用于 Visual Studio 和 VS Code
+# ==========================================
+
+## ==================== 编译和构建输出 ====================
+bin/
+obj/
+publish/
+*.dlls
+*.exe
+*.pdb
+
+## ==================== Visual Studio 用户配置 ====================
+# 用户特定的VS文件
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# VS IDE 缓存和设置
+.vs/
+.vscode/
+
+# VS 解决方案用户选项文件
+*.code-workspace
+
+## ==================== NuGet 包管理 ====================
+*.nupkg
+*.snupkg
+package-lock.json
+.nuget/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+packages/
+
+## ==================== IDE 特定文件 ====================
+# GitHub Actions（本地配置）
+.github/
+
+# JetBrains Rider / ReSharper
+.idea/
+*.sln.iml
+*.ncrunch*
+
+# VS Code 扩展
+*.vsix
+*.code-workspace
+.vscode/*.db
+.vscode/*.log
+.vscode/*.tsbuildinfo
+node_modules/
+out/
+
+## ==================== 日志和缓存 ====================
+*.log
+*.tlog
+*.cache
+*.dbmdl
+*.localhistory
+
+## ==================== 发布和部署 ====================
+*.publishsettings
+*.deploy.cmd
+*.deploy-readme.txt
+
+## ==================== 临时和生成的文件 ====================
+*.tmp
+*.temp
+~$*
+Generated/
+DanKit.*.g.cs
+
+# WebView2 运行时
+*.exe.WebView2/
+
+## ==================== 压缩包和分布式产物 ====================
+*.zip
+*.rar
+*.7z
+
+## ==================== 其他工具文件 ====================
+*.vspscc
+*.vssscc
+out/
+dist/
+.vscode-test/
+*.reg
+node_modules/
+docs/
+
+# 用户个人配置（示例保留为 .example）
+# projects.json

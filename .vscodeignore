@@ -1,0 +1,29 @@
+# 开发与仓库文件
+.vscode/**
+.github/**
+.git/**
+.gitignore
+.gitattributes
+
+# 源码与文档（运行时不需要）
+src/**
+docs/**
+test/**
+tests/**
+
+# 构建与脚本配置
+*.ps1
+*.bat
+tsconfig.json
+.eslintrc*
+.prettierrc*
+.vscode-test/**
+
+# 历史打包产物与日志
+*.vsix
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml
+
+# 减小包体：不发布 sourcemap
+out/**/*.map

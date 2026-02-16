@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>C# Search</title>
+    <link rel="stylesheet" href="{{cssUri}}" />
+</head>
+
+<body>
+    <div class="container">
+        <div id="tabs" class="tabs"></div>
+        <div class="search-box">
+            <input id="queryInput" type="text" placeholder="输入关键字" />
+        </div>
+        <div id="resultMeta" class="result-meta">请输入关键字开始搜索</div>
+        <ul id="resultList" class="result-list"></ul>
+    </div>
+
+    <script nonce="{{nonce}}" src="{{jsUri}}"></script>
+</body>
+
+</html>

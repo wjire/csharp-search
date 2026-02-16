@@ -1,0 +1,117 @@
+:root {
+    color-scheme: light dark;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-foreground);
+    background: var(--vscode-sideBar-background);
+}
+
+.container {
+    padding: 10px;
+}
+
+.tabs {
+    display: flex;
+    border: 1px solid var(--vscode-input-border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.tab-btn {
+    flex: 1;
+    border: 0;
+    padding: 8px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--vscode-foreground);
+    background: var(--vscode-button-secondaryBackground);
+}
+
+.tab-label {
+    line-height: 1;
+}
+
+.tab-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tab-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.tab-btn.active {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+}
+
+.search-box {
+    margin-bottom: 8px;
+}
+
+#queryInput {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--vscode-input-border);
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.result-meta {
+    margin-bottom: 8px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.result-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.result-item {
+    border: 1px solid var(--vscode-editorWidget-border);
+    border-radius: 6px;
+    padding: 8px;
+    cursor: pointer;
+    background: var(--vscode-editorWidget-background);
+}
+
+.result-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.result-path {
+    opacity: 0.9;
+    margin-bottom: 2px;
+}
+
+.result-preview {
+    color: var(--vscode-descriptionForeground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

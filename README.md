@@ -1,37 +1,34 @@
-#  csharp-search
+# csharp-search
 
-#### 介绍
-专为 C# 项目优化的 搜索工具，让你在 VS Code 中轻松搜索指定的方法、类型等
+专为 C# 项目优化的搜索扩展，在 VS Code 左侧活动栏提供独立入口。
 
-#### 软件架构
-软件架构说明
+## 当前功能
 
+- 左侧活动栏新增 `C# Search` 入口。
+- 入口内使用单个 `WebviewView`，顶部 Tab 支持 `方法` / `类型` 切换。
+- 下方输入关键字后，扩展端按当前 Tab 搜索工作区所有 `.cs` 文件。
+- 点击结果可跳转到对应文件与行号。
 
-#### 安装教程
+## 架构说明
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+- 搜索策略接口：`src/search/ISymbolSearcher.ts`
+- 搜索服务编排：`src/search/SymbolSearchService.ts`
+- 默认策略实现：
+	- `src/search/searchers/MethodSearcher.ts`
+	- `src/search/searchers/TypeSearcher.ts`
+- Webview 前端三文件分离：
+	- `media/search-view.html`
+	- `media/search-view.css`
+	- `media/search-view.js`
 
-#### 使用说明
+## 扩展更多搜索类别
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1. 新建一个实现 `ISymbolSearcher` 的搜索器类。
+2. 在 `src/extension.ts` 中将该类注册到 `SymbolSearchService` 构造函数。
+3. Webview 会自动收到新的 `kind` 并渲染为新 Tab，无需改前端结构。
 
-#### 参与贡献
+## 开发
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
-
-
-#### 特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+- 安装依赖：`npm install`
+- 编译：`npm run compile`
+- 调试运行：按 `F5` 启动 Extension Development Host

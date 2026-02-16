@@ -1,0 +1,77 @@
+{
+    "name": "csharp-search",
+    "displayName": "C# Search",
+    "description": "Search methods, types and other C# symbols from a dedicated activity bar view.",
+    "version": "1.0.0",
+    "publisher": "dankit",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/wjire/csharp-Search"
+    },
+    "bugs": {
+        "url": "https://github.com/wjire/csharp-Search/issues"
+    },
+    "homepage": "https://github.com/wjire/csharp-Search#readme",
+    "license": "MIT",
+    "keywords": [
+        "csharp",
+        "c#",
+        "search",
+        "dotnet",
+        ".net"
+    ],
+    "galleryBanner": {
+        "color": "#007ACC",
+        "theme": "dark"
+    },
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "csharpSearch",
+                    "title": "C# Search",
+                    "icon": "media/csharp-search.svg"
+                }
+            ]
+        },
+        "views": {
+            "csharpSearch": [
+                {
+                    "id": "csharpSearch.mainView",
+                    "name": "Search",
+                    "type": "webview",
+                    "icon": "media/csharp-search.svg"
+                }
+            ]
+        },
+        "commands": [],
+        "configuration": {
+            "title": "C# Search",
+            "properties": {}
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.85.0",
+        "@types/node": "20.x",
+        "@typescript-eslint/eslint-plugin": "^6.15.0",
+        "@typescript-eslint/parser": "^6.15.0",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+        "@vscode/test-electron": "^2.3.8"
+    }
+}

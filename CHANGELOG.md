@@ -4,25 +4,11 @@
 
 ## English
 
-### [Unreleased]
+### [1.0.1] - 2026-02-16
 
 #### Added
 
-- Added configurable index exclusion folders via `csharpSearch.excludeFolders`.
-- Added localized webview texts via host-side `languageManager`.
-- Added manifest localization with `package.nls.json` and `package.nls.zh-cn.json`.
-
-#### Changed
-
-- Refined search result cards to a compact 3-line layout.
-- Member result metadata now shows `project / ownerType` when available.
-- Added keyword highlight and theme-driven semantic coloring in result list.
-- Iteratively refined tab labels and icon styling.
-
-#### Fixed
-
-- Improved member owner-type inference when type declarations place `{` on the next line.
-- Removed layout space usage when `resultMeta` is empty.
+- Added command and default shortcut to focus C# Search view: `Ctrl+T` (`Cmd+T` on macOS), aligned with Visual Studio.
 
 ### [1.0.0] - 2026-02-16
 
@@ -36,25 +22,11 @@
 
 ## 中文
 
-### [Unreleased]
+### [1.0.1] - 2026-02-16
 
 #### 新增
 
-- 新增可配置索引排除目录：`csharpSearch.excludeFolders`。
-- 新增 Webview 文案本地化支持（通过 `languageManager` 下发）。
-- 新增扩展清单本地化：`package.nls.json` / `package.nls.zh-cn.json`。
-
-#### 变更
-
-- 搜索结果卡片调整为紧凑三行展示。
-- 成员结果第二行在可识别时显示 `项目 / 归属类型`。
-- 结果列表支持关键词高亮与主题驱动语义着色。
-- 标签文本与图标样式持续收敛优化。
-
-#### 修复
-
-- 修复成员归属类型识别在类型声明换行 `{` 场景下的漏识别问题。
-- 修复空状态下 `resultMeta` 仍占布局高度的问题。
+- 新增聚焦 C# Search 视图的命令与默认快捷键：`Ctrl+T`（macOS 为 `Cmd+T`），与 Visual Studio 保持一致。
 
 ### [1.0.0] - 2026-02-16
 

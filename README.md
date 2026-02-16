@@ -23,6 +23,7 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
   - `Member`: methods and member declarations.
 - Real-time search while typing.
 - Click a result to open file and jump to line.
+- Focus search view shortcut: `Ctrl+T` (`Cmd+T` on macOS), same as Visual Studio.
 - Incremental in-memory index with file watcher updates.
 - Bilingual webview UI (Chinese/English) following VS Code language.
 
@@ -87,6 +88,7 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
   - `成员`：方法与成员声明。
 - 输入即搜，实时返回结果。
 - 点击结果可打开文件并定位到行。
+- 聚焦搜索视图快捷键：`Ctrl+T`（macOS 为 `Cmd+T`），与 Visual Studio 一致。
 - 内存增量索引 + 文件监听更新。
 - Webview 界面支持中英双语并跟随 VS Code 语言。
 

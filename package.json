@@ -2,7 +2,7 @@
     "name": "csharp-search",
     "displayName": "%extension.displayName%",
     "description": "%extension.description%",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "publisher": "dankit",
     "icon": "media/images/icon.png",
     "repository": {
@@ -52,7 +52,20 @@
                 }
             ]
         },
-        "commands": [],
+        "commands": [
+            {
+                "command": "csharpSearch.focusView",
+                "title": "%command.focusView.title%"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "csharpSearch.focusView",
+                "key": "ctrl+t",
+                "mac": "cmd+t",
+                "when": "workbenchState != 'empty'"
+            }
+        ],
         "configuration": {
             "title": "%config.title%",
             "properties": {

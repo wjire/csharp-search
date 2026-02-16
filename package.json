@@ -2,7 +2,7 @@
     "name": "csharp-search",
     "displayName": "%extension.displayName%",
     "description": "%extension.description%",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "publisher": "dankit",
     "icon": "media/images/icon.png",
     "repository": {
@@ -83,6 +83,14 @@
                     ],
                     "scope": "resource",
                     "markdownDescription": "%config.excludeFolders.markdownDescription%"
+                },
+                "csharpSearch.searchDebounceMs": {
+                    "type": "number",
+                    "default": 300,
+                    "minimum": 0,
+                    "maximum": 1000,
+                    "scope": "resource",
+                    "markdownDescription": "%config.searchDebounceMs.markdownDescription%"
                 }
             }
         }

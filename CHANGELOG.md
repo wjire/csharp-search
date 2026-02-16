@@ -4,6 +4,18 @@
 
 ## English
 
+### [1.0.2] - 2026-02-16
+
+#### Added
+
+- Added configurable search debounce setting: `csharpSearch.searchDebounceMs` (default `150`, range `0-1000`).
+
+#### Changed
+
+- Frontend now drops stale `searchResults` responses by `requestId` to avoid old results overriding new input.
+- Search index now stores precomputed lowercase symbol names to reduce repeated lowercase conversions at query time.
+- Index storage switched to per-kind/per-file buckets for more precise incremental add/remove updates.
+
 ### [1.0.1] - 2026-02-16
 
 #### Added
@@ -21,6 +33,18 @@
 - Click-to-open search results with line navigation.
 
 ## 中文
+
+### [1.0.2] - 2026-02-16
+
+#### 新增
+
+- 新增可配置搜索防抖项：`csharpSearch.searchDebounceMs`（默认 `150`，范围 `0-1000`）。
+
+#### 变更
+
+- 前端按 `requestId` 丢弃过期 `searchResults`，避免旧结果覆盖新输入。
+- 索引阶段预计算符号小写名称，减少查询时重复小写转换开销。
+- 索引存储调整为按 kind/文件分桶，增量增删更精准。
 
 ### [1.0.1] - 2026-02-16
 

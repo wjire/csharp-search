@@ -20,6 +20,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
     context.subscriptions.push(
         searchService,
+        viewProvider,
         vscode.window.registerWebviewViewProvider(CSharpSearchViewProvider.viewType, viewProvider),
         focusViewCommand
     );

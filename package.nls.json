@@ -5,5 +5,6 @@
   "view.main.name": " ",
   "command.focusView.title": "C# Search: Focus Search View",
   "config.title": "C# Search",
-  "config.excludeFolders.markdownDescription": "Directories to exclude from C# symbol indexing. Match is by folder name and applies to any level in the workspace path."
+  "config.excludeFolders.markdownDescription": "Directories to exclude from C# symbol indexing. Match is by folder name and applies to any level in the workspace path.",
+  "config.searchDebounceMs.markdownDescription": "Search input debounce in milliseconds before dispatching query (0-1000). Default is 300."
 }

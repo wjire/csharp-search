@@ -42,6 +42,13 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 - Default: `['bin', 'obj', '.git', '.github', '.vscode']`
 - Description: Folder names excluded from indexing (matches at any path depth).
 
+#### `csharpSearch.searchDebounceMs`
+
+- Type: `number`
+- Default: `300`
+- Range: `0-1000`
+- Description: Debounce delay (ms) before sending search request while typing.
+
 ### Localization
 
 - Webview texts are provided by the extension host and switch automatically via `vscode.env.language`.
@@ -106,6 +113,13 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 - 类型：`string[]`
 - 默认：`['bin', 'obj', '.git', '.github', '.vscode']`
 - 说明：按目录名排除索引，匹配工作区路径任意层级。
+
+#### `csharpSearch.searchDebounceMs`
+
+- 类型：`number`
+- 默认：`300`
+- 范围：`0-1000`
+- 说明：输入时发送搜索请求前的防抖延迟（毫秒）。
 
 ### 本地化
 

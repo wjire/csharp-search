@@ -4,9 +4,15 @@ const state = {
     activeKindId: '',
     query: '',
     requestId: 0,
+    searchDebounceMs: 300,
     kinds: [],
     texts: {}
 };
+
+const MIN_SEARCH_DEBOUNCE_MS = 0;
+const MAX_SEARCH_DEBOUNCE_MS = 1000;
+
+let searchDebounceTimer = undefined;
 
 const tabsEl = document.getElementById('tabs');
 const searchBoxEl = document.querySelector('.search-box');
@@ -87,6 +93,26 @@ function triggerSearch() {
         query: state.query,
         requestId: currentRequestId
     });
+}
+
+function scheduleSearch() {
+    if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+    }
+
+    searchDebounceTimer = setTimeout(() => {
+        searchDebounceTimer = undefined;
+        triggerSearch();
+    }, state.searchDebounceMs);
+}
+
+function normalizeSearchDebounceMs(value) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return 300;
+    }
+
+    const rounded = Math.round(value);
+    return Math.min(MAX_SEARCH_DEBOUNCE_MS, Math.max(MIN_SEARCH_DEBOUNCE_MS, rounded));
 }
 
 function updateClearButtonVisibility() {
@@ -220,10 +246,15 @@ function extractWorkspaceName(relativePath) {
 }
 
 queryInputEl.addEventListener('input', () => {
-    triggerSearch();
+    scheduleSearch();
 });
 
 clearQueryBtnEl?.addEventListener('click', () => {
+    if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = undefined;
+    }
+
     queryInputEl.value = '';
     triggerSearch();
     queryInputEl.focus();
@@ -236,6 +267,7 @@ window.addEventListener('message', (event) => {
         state.kinds = Array.isArray(message.kinds) ? message.kinds : [];
         state.activeKindId = message.activeKindId || state.kinds[0]?.id || '';
         state.texts = message.texts && typeof message.texts === 'object' ? message.texts : {};
+        state.searchDebounceMs = normalizeSearchDebounceMs(message.searchDebounceMs);
         queryInputEl.placeholder = getText('input.placeholder', 'Enter keyword');
         const clearInputText = getText('input.clear', 'Clear input');
         clearQueryBtnEl?.setAttribute('aria-label', clearInputText);
@@ -246,7 +278,16 @@ window.addEventListener('message', (event) => {
     }
 
     if (message.type === 'searchResults') {
+        if (message.requestId !== String(state.requestId)) {
+            return;
+        }
+
         renderResults(Array.isArray(message.items) ? message.items : []);
+        return;
+    }
+
+    if (message.type === 'configUpdated') {
+        state.searchDebounceMs = normalizeSearchDebounceMs(message.searchDebounceMs);
     }
 });
 

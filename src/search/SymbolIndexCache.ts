@@ -8,10 +8,13 @@ const CONFIG_SECTION = 'csharpSearch';
 const EXCLUDE_FOLDERS_KEY = 'excludeFolders';
 const DEFAULT_EXCLUDED_FOLDERS = ['bin', 'obj', '.github', '.vscode'];
 
+interface IndexedSearchResultItem extends SearchResultItem {
+    symbolNameLower: string;
+}
+
 export class SymbolIndexCache implements vscode.Disposable {
     private readonly searchersByKindId: Map<string, ISymbolSearcher>;
-    private readonly symbolsByFile: Map<string, Map<string, SearchResultItem[]>>;
-    private readonly symbolsByKind: Map<string, SearchResultItem[]>;
+    private readonly symbolsByKindAndFile: Map<string, Map<string, IndexedSearchResultItem[]>>;
     private readonly watcher: vscode.FileSystemWatcher;
     private readonly configWatcher: vscode.Disposable;
     private readonly initialBuildPromise: Promise<void>;
@@ -20,13 +23,12 @@ export class SymbolIndexCache implements vscode.Disposable {
 
     public constructor(searchers: ISymbolSearcher[]) {
         this.searchersByKindId = new Map(searchers.map((searcher) => [searcher.kind.id, searcher]));
-        this.symbolsByFile = new Map();
-        this.symbolsByKind = new Map();
+        this.symbolsByKindAndFile = new Map();
         this.updateQueue = Promise.resolve();
         this.excludedFolderSet = this.getExcludedFolderSet();
 
         for (const searcher of searchers) {
-            this.symbolsByKind.set(searcher.kind.id, []);
+            this.symbolsByKindAndFile.set(searcher.kind.id, new Map());
         }
 
         this.watcher = vscode.workspace.createFileSystemWatcher('**/*.cs');
@@ -73,8 +75,8 @@ export class SymbolIndexCache implements vscode.Disposable {
     public async search(kindId: string, query: string): Promise<SearchResultItem[]> {
         await this.ensureReady();
 
-        const allSymbols = this.symbolsByKind.get(kindId);
-        if (!allSymbols) {
+        const symbolsByFile = this.symbolsByKindAndFile.get(kindId);
+        if (!symbolsByFile) {
             return [];
         }
 
@@ -83,8 +85,21 @@ export class SymbolIndexCache implements vscode.Disposable {
             return [];
         }
 
-        const matched = allSymbols.filter((item) => item.symbolName.toLowerCase().includes(normalizedQuery));
-        return matched.slice(0, 500);
+        const matched: SearchResultItem[] = [];
+        for (const symbols of symbolsByFile.values()) {
+            for (const symbol of symbols) {
+                if (!symbol.symbolNameLower.includes(normalizedQuery)) {
+                    continue;
+                }
+
+                matched.push(symbol);
+                if (matched.length >= 500) {
+                    return matched;
+                }
+            }
+        }
+
+        return matched;
     }
 
     private async buildInitialIndex(): Promise<void> {
@@ -100,19 +115,17 @@ export class SymbolIndexCache implements vscode.Disposable {
     }
 
     private async rebuildIndex(): Promise<void> {
-        for (const kindId of this.symbolsByKind.keys()) {
-            this.symbolsByKind.set(kindId, []);
+        for (const mapByFile of this.symbolsByKindAndFile.values()) {
+            mapByFile.clear();
         }
-        this.symbolsByFile.clear();
         await this.buildInitialIndex();
     }
 
     private async upsertFile(uri: vscode.Uri): Promise<void> {
         if (this.isIgnoredUri(uri)) {
+            this.removeFile(uri);
             return;
         }
-
-        this.removeFile(uri);
 
         try {
             const fileBuffer = await vscode.workspace.fs.readFile(uri);
@@ -120,23 +133,28 @@ export class SymbolIndexCache implements vscode.Disposable {
             const relativePath = vscode.workspace.asRelativePath(uri);
             const projectName = vscode.workspace.getWorkspaceFolder(uri)?.name ?? '';
             const uriKey = uri.toString();
-            const byKind = new Map<string, SearchResultItem[]>();
+            const byKind = new Map<string, IndexedSearchResultItem[]>();
 
             for (const searcher of this.searchersByKindId.values()) {
                 const symbols = searcher
                     .searchInContent(content, uri, relativePath, '')
                     .map((item) => ({
                         ...item,
-                        projectName
+                        projectName,
+                        symbolNameLower: item.symbolName.toLowerCase()
                     }));
                 byKind.set(searcher.kind.id, symbols);
             }
 
-            this.symbolsByFile.set(uriKey, byKind);
+            this.removeFile(uri);
 
             for (const [kindId, symbols] of byKind.entries()) {
-                const existing = this.symbolsByKind.get(kindId) ?? [];
-                this.symbolsByKind.set(kindId, existing.concat(symbols));
+                const symbolsByFile = this.symbolsByKindAndFile.get(kindId);
+                if (!symbolsByFile) {
+                    continue;
+                }
+
+                symbolsByFile.set(uriKey, symbols);
             }
         } catch {
             this.removeFile(uri);
@@ -145,11 +163,8 @@ export class SymbolIndexCache implements vscode.Disposable {
 
     private removeFile(uri: vscode.Uri): void {
         const uriKey = uri.toString();
-        this.symbolsByFile.delete(uriKey);
-
-        for (const [kindId, symbols] of this.symbolsByKind.entries()) {
-            const filtered = symbols.filter((item) => item.uri.toString() !== uriKey);
-            this.symbolsByKind.set(kindId, filtered);
+        for (const symbolsByFile of this.symbolsByKindAndFile.values()) {
+            symbolsByFile.delete(uriKey);
         }
     }
 

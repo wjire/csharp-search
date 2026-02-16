@@ -9,7 +9,9 @@ const state = {
 };
 
 const tabsEl = document.getElementById('tabs');
+const searchBoxEl = document.querySelector('.search-box');
 const queryInputEl = document.getElementById('queryInput');
+const clearQueryBtnEl = document.getElementById('clearQueryBtn');
 const resultListEl = document.getElementById('resultList');
 const resultMetaEl = document.getElementById('resultMeta');
 
@@ -69,6 +71,7 @@ function renderTabs() {
 
 function triggerSearch() {
     state.query = queryInputEl.value.trim();
+    updateClearButtonVisibility();
     const currentRequestId = String(++state.requestId);
 
     if (!state.activeKindId || !state.query) {
@@ -84,6 +87,15 @@ function triggerSearch() {
         query: state.query,
         requestId: currentRequestId
     });
+}
+
+function updateClearButtonVisibility() {
+    if (!searchBoxEl) {
+        return;
+    }
+
+    const hasValue = queryInputEl.value.trim().length > 0;
+    searchBoxEl.classList.toggle('has-value', hasValue);
 }
 
 function renderResults(items) {
@@ -211,6 +223,12 @@ queryInputEl.addEventListener('input', () => {
     triggerSearch();
 });
 
+clearQueryBtnEl?.addEventListener('click', () => {
+    queryInputEl.value = '';
+    triggerSearch();
+    queryInputEl.focus();
+});
+
 window.addEventListener('message', (event) => {
     const message = event.data;
 
@@ -219,6 +237,10 @@ window.addEventListener('message', (event) => {
         state.activeKindId = message.activeKindId || state.kinds[0]?.id || '';
         state.texts = message.texts && typeof message.texts === 'object' ? message.texts : {};
         queryInputEl.placeholder = getText('input.placeholder', 'Enter keyword');
+        const clearInputText = getText('input.clear', 'Clear input');
+        clearQueryBtnEl?.setAttribute('aria-label', clearInputText);
+        clearQueryBtnEl?.setAttribute('title', clearInputText);
+        updateClearButtonVisibility();
         renderTabs();
         return;
     }

@@ -1,6 +1,6 @@
 {
   "extension.displayName": "C# Search",
-  "extension.description": "Search methods, types and other C# symbols from a dedicated activity bar view.",
+  "extension.description": "🔍 Search methods, types and other C# symbols from a dedicated activity bar view.",
   "viewContainer.title": "C# Search",
   "view.main.name": "C# Search",
   "command.focusView.title": "C# Search: Focus Search View",

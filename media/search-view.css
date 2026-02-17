@@ -12,7 +12,7 @@ body {
 }
 
 .container {
-    padding: 10px;
+    padding: 5px;
 }
 
 .tabs {
@@ -31,31 +31,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
     color: var(--vscode-foreground);
     background: var(--vscode-button-secondaryBackground);
 }
 
 .tab-label {
     line-height: 1;
-}
-
-.tab-icon {
-    width: 16px;
-    height: 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.tab-icon svg {
-    width: 16px;
-    height: 16px;
-    stroke: currentColor;
-    fill: none;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
 }
 
 .tab-btn.active {
@@ -187,13 +168,26 @@ body {
     color: var(--vscode-symbolIconClassForeground, var(--vscode-foreground));
 }
 
-.result-item--member .result-name {
+.result-item--method .result-name {
     color: var(--vscode-symbolIconMethodForeground, var(--vscode-foreground));
+}
+
+.result-item--member .result-name {
+    color: var(--vscode-symbolIconPropertyForeground, var(--vscode-symbolIconFieldForeground, var(--vscode-foreground)));
+}
+
+.result-item--impl .result-name {
+    color: var(--vscode-symbolIconInterfaceForeground, var(--vscode-foreground));
 }
 
 .result-meta-line {
     color: var(--vscode-descriptionForeground);
     margin-bottom: 2px;
+}
+
+.result-item--impl .result-meta-line--impl {
+    color: var(--vscode-symbolIconInterfaceForeground, var(--vscode-descriptionForeground));
+    font-weight: 600;
 }
 
 .result-detail-line {

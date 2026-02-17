@@ -20,7 +20,9 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 - Dedicated Activity Bar entry: `C# Search`.
 - Tab-based symbol search:
   - `Type`: class / interface / struct / enum / record.
-  - `Member`: methods and member declarations.
+  - `Method`: methods and constructors.
+  - `Member`: fields and properties.
+  - `Impl`: implementations by interface/base type.
 - Real-time search while typing.
 - Switchable match modes: `Fuzzy` / `Exact`.
 - Click a result to open file and jump to line.
@@ -34,6 +36,8 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 - Excludes `bin`, `obj`, `.git`, `.github`, `.vscode` by default.
 - Updates cache incrementally on create/change/delete events.
 - Supports `Fuzzy` / `Exact` mode switching, with case-insensitive matching, and returns up to 500 results.
+- In `Impl`, search supports implementation type names and interface/base type names.
+- Input placeholder text updates by active tab to indicate expected query intent.
 
 ### Configuration
 
@@ -63,7 +67,9 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 - `src/search/SymbolSearchService.ts`: search orchestration.
 - `src/search/SymbolIndexCache.ts`: symbol index + file watching.
 - `src/search/searchers/TypeSearcher.ts`: type search strategy.
-- `src/search/searchers/MethodSearcher.ts`: member search strategy.
+- `src/search/searchers/MethodSearcher.ts`: method search strategy.
+- `src/search/searchers/MemberSearcher.ts`: field/property search strategy.
+- `src/search/searchers/ImplementationSearcher.ts`: implementation search strategy.
 - `src/webview/CSharpSearchViewProvider.ts`: webview message bridge.
 - `media/search-view.*`: webview UI.
 
@@ -93,7 +99,9 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 - 活动栏独立入口：`C# Search`。
 - 按类别检索符号：
   - `类型`：class / interface / struct / enum / record。
-  - `成员`：方法与成员声明。
+  - `方法`：方法与构造函数。
+  - `成员`：字段与属性。
+  - `实现`：按接口/基类检索实现或派生类型。
 - 输入即搜，实时返回结果。
 - 支持“模糊匹配 / 精确匹配”切换。
 - 点击结果可打开文件并定位到行。
@@ -107,6 +115,8 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 - 默认排除 `bin`、`obj`、`.git`、`.github`、`.vscode`。
 - 文件新增/修改/删除后增量刷新缓存。
 - 支持“模糊匹配 / 精确匹配”切换，匹配大小写不敏感，最多返回 500 条。
+- 在“实现”标签下，可按实现类名、接口名或基类名检索。
+- 输入框提示会根据当前标签动态切换，降低误搜成本。
 
 ### 配置项
 
@@ -136,7 +146,9 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 - `src/search/SymbolSearchService.ts`：搜索编排。
 - `src/search/SymbolIndexCache.ts`：符号索引与文件监听。
 - `src/search/searchers/TypeSearcher.ts`：类型检索。
-- `src/search/searchers/MethodSearcher.ts`：成员检索。
+- `src/search/searchers/MethodSearcher.ts`：方法检索。
+- `src/search/searchers/MemberSearcher.ts`：字段/属性检索。
+- `src/search/searchers/ImplementationSearcher.ts`：实现/派生类型检索。
 - `src/webview/CSharpSearchViewProvider.ts`：Webview 消息桥接。
 - `media/search-view.*`：Webview 前端。
 

@@ -88,9 +88,11 @@ export class SymbolIndexCache implements vscode.Disposable {
         const matched: SearchResultItem[] = [];
         for (const symbols of symbolsByFile.values()) {
             for (const symbol of symbols) {
+                const symbolNameLower = symbol.symbolName.toLowerCase();
+                const searchText = (symbol.searchText ?? '').toLowerCase();
                 const isMatched = matchMode === 'exact'
-                    ? symbol.symbolNameLower === normalizedQuery
-                    : symbol.symbolNameLower.includes(normalizedQuery);
+                    ? this.isExactMatched(symbolNameLower, searchText, normalizedQuery)
+                    : (symbolNameLower.includes(normalizedQuery) || searchText.includes(normalizedQuery));
 
                 if (!isMatched) {
                     continue;
@@ -104,6 +106,23 @@ export class SymbolIndexCache implements vscode.Disposable {
         }
 
         return matched;
+    }
+
+    private isExactMatched(symbolNameLower: string, searchTextLower: string, queryLower: string): boolean {
+        if (symbolNameLower === queryLower) {
+            return true;
+        }
+
+        if (!searchTextLower) {
+            return false;
+        }
+
+        const tokens = searchTextLower
+            .split(/[\s,]+/)
+            .map((token) => token.trim())
+            .filter((token) => token.length > 0);
+
+        return tokens.includes(queryLower);
     }
 
     private async buildInitialIndex(): Promise<void> {
@@ -142,11 +161,14 @@ export class SymbolIndexCache implements vscode.Disposable {
             for (const searcher of this.searchersByKindId.values()) {
                 const symbols = searcher
                     .searchInContent(content, uri, relativePath, '')
-                    .map((item) => ({
-                        ...item,
-                        projectName,
-                        symbolNameLower: item.symbolName.toLowerCase()
-                    }));
+                    .map((item) => {
+                        const searchSource = item.searchText ?? item.symbolName.toLowerCase();
+                        return {
+                            ...item,
+                            projectName,
+                            symbolNameLower: searchSource
+                        };
+                    });
                 byKind.set(searcher.kind.id, symbols);
             }
 

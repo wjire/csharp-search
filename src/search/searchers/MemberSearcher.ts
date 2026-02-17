@@ -16,10 +16,10 @@ interface TypeScope {
     end: number;
 }
 
-export class MethodSearcher implements ISymbolSearcher {
+export class MemberSearcher implements ISymbolSearcher {
     public readonly kind: SearchKindDefinition = {
-        id: 'method',
-        label: lang.t('search.kind.method')
+        id: 'member',
+        label: lang.t('search.kind.member')
     };
 
     public searchInContent(content: string, uri: vscode.Uri, relativePath: string, query: string): SearchResultItem[] {
@@ -38,15 +38,15 @@ export class MethodSearcher implements ISymbolSearcher {
     }
 
     private findMatches(content: string, query: string): RawMatch[] {
-        const methodRegex = /\b(?:public|private|protected|internal|static|virtual|override|sealed|partial|async|extern|new|unsafe|abstract)\b[^\n;{}]*?\b([A-Za-z_]\w*)\s*\([^;{}]*\)\s*(?:\{|=>)/g;
+        const memberRegex = /\b(?:public|private|protected|internal|static|readonly|required|volatile|new|unsafe)\b[^\n{};]*?\b([A-Za-z_]\w*)\s*(?:\{\s*(?:get|set|init)|=>|;)/g;
         const normalizedQuery = query.toLowerCase();
         const matches: RawMatch[] = [];
         const typeScopes = this.getTypeScopes(content);
         const lineBreakIndexes = this.buildLineBreakIndexes(content);
 
-        for (const match of content.matchAll(methodRegex)) {
-            const methodName = match[1] ?? '';
-            if (!methodName.toLowerCase().includes(normalizedQuery)) {
+        for (const match of content.matchAll(memberRegex)) {
+            const memberName = match[1] ?? '';
+            if (!memberName.toLowerCase().includes(normalizedQuery)) {
                 continue;
             }
 
@@ -55,7 +55,7 @@ export class MethodSearcher implements ISymbolSearcher {
             const preview = (match[0] ?? '').replace(/\s+/g, ' ').trim();
             const ownerTypeName = this.getInnermostTypeName(typeScopes, start);
             matches.push({
-                symbolName: methodName,
+                symbolName: memberName,
                 line,
                 preview,
                 ownerTypeName

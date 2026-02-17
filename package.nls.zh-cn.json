@@ -2,7 +2,7 @@
   "extension.displayName": "C# Search",
   "extension.description": "在独立活动栏视图中搜索 C# 方法、类型及其他符号。",
   "viewContainer.title": "C# Search",
-  "view.main.name": " ",
+  "view.main.name": "C# Search",
   "command.focusView.title": "C# Search：聚焦搜索视图",
   "config.title": "C# Search",
   "config.excludeFolders.markdownDescription": "用于从 C# 符号索引中排除的目录名列表。按目录名匹配，并对工作区路径任意层级生效。",

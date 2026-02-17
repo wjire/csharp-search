@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { CSharpSearchViewProvider } from './webview/CSharpSearchViewProvider';
+import { ImplementationSearcher } from './search/searchers/ImplementationSearcher';
+import { MemberSearcher } from './search/searchers/MemberSearcher';
 import { MethodSearcher } from './search/searchers/MethodSearcher';
 import { TypeSearcher } from './search/searchers/TypeSearcher';
 import { SymbolSearchService } from './search/SymbolSearchService';
@@ -9,7 +11,9 @@ const FOCUS_VIEW_COMMAND = 'csharpSearch.focusView';
 export function activate(context: vscode.ExtensionContext): void {
     const searchService = new SymbolSearchService([
         new TypeSearcher(),
-        new MethodSearcher()
+        new MethodSearcher(),
+        new MemberSearcher(),
+        new ImplementationSearcher()
     ]);
     void searchService.warmup();
 

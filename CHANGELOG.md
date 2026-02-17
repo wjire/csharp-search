@@ -4,6 +4,15 @@
 
 ## English
 
+### [1.0.3] - 2026-02-17
+
+#### Changed
+
+- Search kinds are now split into `Type`, `Method`, `Member`, and `Impl`.
+- `Method` focuses on methods/constructors.
+- `Member` focuses on fields/properties.
+- `Impl` supports searching by implementation type name and interface/base type name.
+
 ### [1.0.2] - 2026-02-16
 
 #### Added
@@ -35,6 +44,15 @@
 - Click-to-open search results with line navigation.
 
 ## 中文
+
+### [1.0.3] - 2026-02-17
+
+#### 变更
+
+- 搜索类别调整为 `类型`、`方法`、`成员`、`实现` 四类。
+- `方法` 专注方法/构造函数。
+- `成员` 专注字段/属性。
+- `实现` 检索支持按实现类名及接口/基类名称查询。
 
 ### [1.0.2] - 2026-02-16
 

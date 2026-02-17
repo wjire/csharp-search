@@ -10,6 +10,7 @@ export interface SearchKindDefinition {
 export interface SearchResultItem {
     kindId: string;
     symbolName: string;
+    searchText?: string;
     preview: string;
     line: number;
     uri: vscode.Uri;

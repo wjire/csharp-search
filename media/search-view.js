@@ -25,18 +25,6 @@ const exactModeBtnEl = document.getElementById('exactModeBtn');
 const resultListEl = document.getElementById('resultList');
 const resultMetaEl = document.getElementById('resultMeta');
 
-const kindIcons = {
-    type: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.8"/><circle cx="13" cy="8" r="1.8"/><circle cx="13" cy="16" r="1.8"/><path d="M7.8 12H11.2"/><path d="M11.2 12L12.4 9.2"/><path d="M11.2 12L12.4 14.8"/></svg>',
-    member: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 19 8v8l-7 4-7-4V8z"/><path d="M12 12v8"/><path d="M5 8l7 4 7-4"/></svg>'
-};
-
-function createKindIcon(kindId) {
-    const icon = document.createElement('span');
-    icon.className = 'tab-icon';
-    icon.innerHTML = kindIcons[kindId] ?? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/></svg>';
-    return icon;
-}
-
 function getKindLabel(kind) {
     return kind?.label ?? '';
 }
@@ -62,21 +50,44 @@ function renderTabs() {
         button.type = 'button';
         button.className = `tab-btn${kind.id === state.activeKindId ? ' active' : ''}`;
 
-        const icon = createKindIcon(kind.id);
         const label = document.createElement('span');
         label.className = 'tab-label';
         label.textContent = getKindLabel(kind);
 
-        button.appendChild(icon);
         button.appendChild(label);
 
         button.addEventListener('click', () => {
             state.activeKindId = kind.id;
             renderTabs();
+            updateInputPlaceholder();
             triggerSearch();
         });
         tabsEl.appendChild(button);
     });
+}
+
+function getPlaceholderByKind(kindId) {
+    if (kindId === 'type') {
+        return getText('input.placeholder.type', getText('input.placeholder', 'Enter keyword'));
+    }
+
+    if (kindId === 'method') {
+        return getText('input.placeholder.method', getText('input.placeholder', 'Enter keyword'));
+    }
+
+    if (kindId === 'member') {
+        return getText('input.placeholder.member', getText('input.placeholder', 'Enter keyword'));
+    }
+
+    if (kindId === 'impl') {
+        return getText('input.placeholder.impl', getText('input.placeholder', 'Enter keyword'));
+    }
+
+    return getText('input.placeholder', 'Enter keyword');
+}
+
+function updateInputPlaceholder() {
+    queryInputEl.placeholder = getPlaceholderByKind(state.activeKindId);
 }
 
 function triggerSearch() {
@@ -148,7 +159,7 @@ function renderResults(items) {
     items.forEach((item) => {
         const li = document.createElement('li');
         li.className = 'result-item';
-        if (item.kindId === 'type' || item.kindId === 'member') {
+        if (item.kindId === 'type' || item.kindId === 'method' || item.kindId === 'member' || item.kindId === 'impl') {
             li.classList.add(`result-item--${item.kindId}`);
         }
 
@@ -158,6 +169,9 @@ function renderResults(items) {
 
         const meta = document.createElement('div');
         meta.className = 'result-meta-line';
+        if (item.kindId === 'impl') {
+            meta.classList.add('result-meta-line--impl');
+        }
         applyHighlightedText(meta, buildMetaText(item), state.query);
 
         const detail = document.createElement('div');
@@ -225,7 +239,7 @@ function buildMetaText(item) {
         return item.projectName || extractWorkspaceName(item.relativePath);
     }
 
-    if (item.kindId === 'member') {
+    if (item.kindId === 'method' || item.kindId === 'member' || item.kindId === 'impl') {
         const project = item.projectName || extractWorkspaceName(item.relativePath);
         const ownerType = (item.ownerTypeName || '').trim();
         return ownerType ? `${project} / ${ownerType}` : project;
@@ -235,7 +249,7 @@ function buildMetaText(item) {
 }
 
 function buildDetailText(item) {
-    if (item.kindId === 'type' || item.kindId === 'member') {
+    if (item.kindId === 'type' || item.kindId === 'method' || item.kindId === 'member' || item.kindId === 'impl') {
         return item.preview;
     }
 
@@ -303,7 +317,7 @@ window.addEventListener('message', (event) => {
         state.activeKindId = message.activeKindId || state.kinds[0]?.id || '';
         state.texts = message.texts && typeof message.texts === 'object' ? message.texts : {};
         state.searchDebounceMs = normalizeSearchDebounceMs(message.searchDebounceMs);
-        queryInputEl.placeholder = getText('input.placeholder', 'Enter keyword');
+        updateInputPlaceholder();
         const clearInputText = getText('input.clear', 'Clear input');
         clearQueryBtnEl?.setAttribute('aria-label', clearInputText);
         clearQueryBtnEl?.setAttribute('title', clearInputText);

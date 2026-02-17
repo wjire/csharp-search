@@ -4,6 +4,13 @@
 
 ## English
 
+### [1.0.7] - 2026-02-17
+
+#### Changed
+
+- Improved overall search view UX and visual consistency.
+- Improved result interaction behavior for expand/collapse and paging scenarios.
+
 ### [1.0.6] - 2026-02-17
 
 #### Added
@@ -81,6 +88,13 @@
 - Click-to-open search results with line navigation.
 
 ## 中文
+
+### [1.0.7] - 2026-02-17
+
+#### 变更
+
+- 进一步优化搜索视图整体体验与视觉一致性。
+- 优化展开/折叠与分页联动场景下的交互体验。
 
 ### [1.0.6] - 2026-02-17
 

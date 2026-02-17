@@ -4,11 +4,14 @@ const state = {
     activeKindId: '',
     query: '',
     matchMode: 'fuzzy',
+    viewMode: 'tree',
     requestId: 0,
     searchDebounceMs: 300,
     pageSize: 100,
     kinds: [],
     texts: {},
+    displayedItems: [],
+    expandedNodeState: {},
     totalResults: 0,
     loadedResults: 0,
     hasMore: false,
@@ -38,8 +41,17 @@ const clearQueryBtnEl = document.getElementById('clearQueryBtn');
 const matchModeGroupEl = document.getElementById('matchModeGroup');
 const fuzzyModeBtnEl = document.getElementById('fuzzyModeBtn');
 const exactModeBtnEl = document.getElementById('exactModeBtn');
+const viewModeToggleBtnEl = document.getElementById('viewModeToggleBtn');
+const viewModeToggleIconEl = document.getElementById('viewModeToggleIcon');
+const toggleExpandBtnEl = document.getElementById('toggleExpandBtn');
+const toggleExpandIconEl = document.getElementById('toggleExpandIcon');
 const resultListEl = document.getElementById('resultList');
 const resultMetaEl = document.getElementById('resultMeta');
+
+const persistedState = vscode.getState() || {};
+if (persistedState.viewMode === 'list') {
+    state.viewMode = 'list';
+}
 
 function getKindLabel(kind) {
     return kind?.label ?? '';
@@ -59,6 +71,7 @@ function formatText(template, ...args) {
 }
 
 function resetPagingState() {
+    state.displayedItems = [];
     state.totalResults = 0;
     state.loadedResults = 0;
     state.hasMore = false;
@@ -209,6 +222,162 @@ function setMatchMode(matchMode) {
     exactModeBtnEl?.classList.toggle('active', state.matchMode === 'exact');
 }
 
+function setViewMode(viewMode, persist = true) {
+    state.viewMode = viewMode === 'list' ? 'list' : 'tree';
+
+    if (viewModeToggleBtnEl && viewModeToggleIconEl) {
+        if (state.viewMode === 'tree') {
+            viewModeToggleIconEl.className = 'codicon codicon-list-tree';
+            const title = getText('view.list', 'List View');
+            viewModeToggleBtnEl.setAttribute('title', title);
+            viewModeToggleBtnEl.setAttribute('aria-label', title);
+        } else {
+            viewModeToggleIconEl.className = 'codicon codicon-list-flat';
+            const title = getText('view.tree', 'Tree View');
+            viewModeToggleBtnEl.setAttribute('title', title);
+            viewModeToggleBtnEl.setAttribute('aria-label', title);
+        }
+    }
+
+    if (persist) {
+        const previousState = vscode.getState() || {};
+        vscode.setState({
+            ...previousState,
+            viewMode: state.viewMode
+        });
+    }
+
+    updateExpandToggleButton();
+}
+
+function updateExpandToggleButton() {
+    if (!toggleExpandBtnEl || !toggleExpandIconEl) {
+        return;
+    }
+
+    const hasNodes = hasCollapsibleNodes();
+    toggleExpandBtnEl.disabled = !hasNodes;
+
+    const shouldCollapse = areAllCollapsibleNodesExpanded();
+    if (shouldCollapse) {
+        toggleExpandIconEl.className = 'codicon codicon-collapse-all';
+        const title = getText('view.collapseAll', 'Collapse All');
+        toggleExpandBtnEl.setAttribute('title', title);
+        toggleExpandBtnEl.setAttribute('aria-label', title);
+        return;
+    }
+
+    toggleExpandIconEl.className = 'codicon codicon-expand-all';
+    const title = getText('view.expandAll', 'Expand All');
+    toggleExpandBtnEl.setAttribute('title', title);
+    toggleExpandBtnEl.setAttribute('aria-label', title);
+}
+
+function hasCollapsibleNodes() {
+    if (!state.displayedItems.length) {
+        return false;
+    }
+
+    if (state.viewMode === 'tree') {
+        const root = buildResultTree(state.displayedItems);
+        return root.folders.size > 0 || root.files.size > 0;
+    }
+
+    const groups = buildListFileGroups(state.displayedItems);
+    return groups.length > 0;
+}
+
+function areAllCollapsibleNodesExpanded() {
+    if (!state.displayedItems.length) {
+        return false;
+    }
+
+    if (state.viewMode === 'list') {
+        const groups = buildListFileGroups(state.displayedItems);
+        if (!groups.length) {
+            return false;
+        }
+
+        for (const group of groups) {
+            if (!isNodeExpanded('list-file', group.filePath)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    const root = buildResultTree(state.displayedItems);
+    const stack = [root];
+
+    while (stack.length > 0) {
+        const node = stack.pop();
+        if (!node) {
+            continue;
+        }
+
+        if (node.folders) {
+            const folders = Array.from(node.folders.values());
+            for (const folder of folders) {
+                if (!isNodeExpanded('folder', folder.path)) {
+                    return false;
+                }
+                stack.push(folder);
+            }
+        }
+
+        if (node.files) {
+            const files = Array.from(node.files.values());
+            for (const file of files) {
+                if (!isNodeExpanded('file', file.path)) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+function setAllNodesExpanded(expanded) {
+    if (!state.displayedItems.length) {
+        return;
+    }
+
+    if (state.viewMode === 'list') {
+        const groups = buildListFileGroups(state.displayedItems);
+        groups.forEach((group) => {
+            setNodeExpanded('list-file', group.filePath, expanded);
+        });
+        return;
+    }
+
+    const root = buildResultTree(state.displayedItems);
+    const stack = [root];
+
+    while (stack.length > 0) {
+        const node = stack.pop();
+        if (!node) {
+            continue;
+        }
+
+        if (node.folders) {
+            const folders = Array.from(node.folders.values());
+            for (const folder of folders) {
+                setNodeExpanded('folder', folder.path, expanded);
+                stack.push(folder);
+            }
+        }
+
+        if (node.files) {
+            const files = Array.from(node.files.values());
+            for (const file of files) {
+                setNodeExpanded('file', file.path, expanded);
+            }
+        }
+    }
+}
+
 function scheduleSearch() {
     if (searchDebounceTimer) {
         clearTimeout(searchDebounceTimer);
@@ -247,30 +416,107 @@ function updateClearButtonVisibility() {
     searchBoxEl.classList.toggle('has-value', hasValue);
 }
 
-function createResultElement(item) {
+function buildResultTree(items) {
+    const root = {
+        folders: new Map(),
+        files: new Map(),
+        count: 0
+    };
+
+    items.forEach((item) => {
+        const normalizedPath = normalizeRelativePath(item.relativePath);
+        const segments = normalizedPath.split('/').filter(Boolean);
+        if (!segments.length) {
+            return;
+        }
+
+        root.count += 1;
+
+        const fileName = segments[segments.length - 1];
+        const folderSegments = segments.slice(0, -1);
+
+        let current = root;
+        let currentPath = '';
+        folderSegments.forEach((segment) => {
+            currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+
+            if (!current.folders.has(segment)) {
+                current.folders.set(segment, {
+                    name: segment,
+                    path: currentPath,
+                    folders: new Map(),
+                    files: new Map(),
+                    count: 0
+                });
+            }
+
+            const folderNode = current.folders.get(segment);
+            folderNode.count += 1;
+            current = folderNode;
+        });
+
+        const filePath = currentPath ? `${currentPath}/${fileName}` : fileName;
+        if (!current.files.has(fileName)) {
+            current.files.set(fileName, {
+                name: fileName,
+                path: filePath,
+                count: 0,
+                matches: []
+            });
+        }
+
+        const fileNode = current.files.get(fileName);
+        fileNode.count += 1;
+        fileNode.matches.push(item);
+    });
+
+    return root;
+}
+
+function normalizeRelativePath(relativePath) {
+    if (typeof relativePath !== 'string') {
+        return '';
+    }
+
+    return relativePath.replace(/\\/g, '/').replace(/^\/+/, '').trim();
+}
+
+function compareByName(a, b) {
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+}
+
+function getNodeKey(nodeType, path) {
+    return `${nodeType}:${path}`;
+}
+
+function isNodeExpanded(nodeType, path) {
+    const key = getNodeKey(nodeType, path);
+    if (!(key in state.expandedNodeState)) {
+        state.expandedNodeState[key] = true;
+    }
+
+    return state.expandedNodeState[key] === true;
+}
+
+function setNodeExpanded(nodeType, path, expanded) {
+    state.expandedNodeState[getNodeKey(nodeType, path)] = expanded === true;
+}
+
+function createCountBadge(count) {
+    const badge = document.createElement('span');
+    badge.className = 'result-tree-count';
+    badge.textContent = String(count);
+    return badge;
+}
+
+function createResultSymbolElement(item) {
     const li = document.createElement('li');
-    li.className = 'result-item';
-    if (item.kindId === 'type' || item.kindId === 'method' || item.kindId === 'member' || item.kindId === 'impl') {
-        li.classList.add(`result-item--${item.kindId}`);
-    }
+    li.className = 'result-symbol-item';
 
-    const name = document.createElement('div');
-    name.className = 'result-name';
-    applyHighlightedText(name, item.symbolName, state.query);
-
-    const meta = document.createElement('div');
-    meta.className = 'result-meta-line';
-    if (item.kindId === 'impl') {
-        meta.classList.add('result-meta-line--impl');
-    }
-    applyHighlightedText(meta, buildMetaText(item), state.query);
-
-    const detail = document.createElement('div');
-    detail.className = 'result-detail-line';
+    const detail = document.createElement('span');
+    detail.className = 'result-symbol-detail';
     applyHighlightedText(detail, buildDetailText(item), state.query);
 
-    li.appendChild(name);
-    li.appendChild(meta);
     li.appendChild(detail);
 
     li.addEventListener('click', () => {
@@ -281,6 +527,123 @@ function createResultElement(item) {
         });
     });
 
+    return li;
+}
+
+function createDisclosure(expanded) {
+    const disclosure = document.createElement('span');
+    disclosure.className = `result-tree-disclosure codicon ${expanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`;
+    return disclosure;
+}
+
+function updateDisclosureIcon(disclosure, expanded) {
+    if (!disclosure) {
+        return;
+    }
+
+    disclosure.classList.toggle('codicon-chevron-down', expanded);
+    disclosure.classList.toggle('codicon-chevron-right', !expanded);
+}
+
+function createFolderElement(folderNode) {
+    const li = document.createElement('li');
+    li.className = 'result-tree-folder';
+
+    const expanded = isNodeExpanded('folder', folderNode.path);
+
+    const row = document.createElement('div');
+    row.className = 'result-tree-row result-tree-row--folder';
+
+    const left = document.createElement('div');
+    left.className = 'result-tree-left';
+
+    left.appendChild(createDisclosure(expanded));
+
+    const icon = document.createElement('span');
+    icon.className = 'result-tree-icon result-tree-icon--folder';
+    icon.textContent = '📁';
+    left.appendChild(icon);
+
+    const label = document.createElement('span');
+    label.className = 'result-tree-label';
+    label.textContent = folderNode.name;
+    left.appendChild(label);
+
+    row.appendChild(left);
+    row.appendChild(createCountBadge(folderNode.count));
+    li.appendChild(row);
+
+    const children = document.createElement('ul');
+    children.className = 'result-tree-children';
+    children.hidden = !expanded;
+
+    const folders = Array.from(folderNode.folders.values()).sort(compareByName);
+    const files = Array.from(folderNode.files.values()).sort(compareByName);
+
+    folders.forEach((subFolder) => {
+        children.appendChild(createFolderElement(subFolder));
+    });
+
+    files.forEach((fileNode) => {
+        children.appendChild(createFileElement(fileNode));
+    });
+
+    row.addEventListener('click', () => {
+        const nextExpanded = !children.hidden;
+        children.hidden = nextExpanded;
+        setNodeExpanded('folder', folderNode.path, !nextExpanded);
+        const disclosure = row.querySelector('.result-tree-disclosure');
+        updateDisclosureIcon(disclosure, !nextExpanded);
+    });
+
+    li.appendChild(children);
+    return li;
+}
+
+function createFileElement(fileNode) {
+    const li = document.createElement('li');
+    li.className = 'result-tree-file';
+
+    const expanded = isNodeExpanded('file', fileNode.path);
+
+    const row = document.createElement('div');
+    row.className = 'result-tree-row result-tree-row--file';
+
+    const left = document.createElement('div');
+    left.className = 'result-tree-left';
+    left.appendChild(createDisclosure(expanded));
+
+    const icon = document.createElement('span');
+    icon.className = 'result-tree-icon result-tree-icon--file';
+    icon.textContent = 'C#';
+    left.appendChild(icon);
+
+    const label = document.createElement('span');
+    label.className = 'result-tree-label';
+    label.textContent = fileNode.name;
+    left.appendChild(label);
+
+    row.appendChild(left);
+    row.appendChild(createCountBadge(fileNode.count));
+    li.appendChild(row);
+
+    const symbols = document.createElement('ul');
+    symbols.className = 'result-tree-symbols';
+    symbols.hidden = !expanded;
+
+    fileNode.matches.forEach((item) => {
+        symbols.appendChild(createResultSymbolElement(item));
+    });
+
+    row.addEventListener('click', () => {
+        const nextExpanded = !symbols.hidden;
+        symbols.hidden = nextExpanded;
+        setNodeExpanded('file', fileNode.path, !nextExpanded);
+        const disclosure = row.querySelector('.result-tree-disclosure');
+        updateDisclosureIcon(disclosure, !nextExpanded);
+    });
+
+    li.appendChild(symbols);
     return li;
 }
 
@@ -302,21 +665,152 @@ function updateResultMeta() {
     resultMetaEl.textContent = formatText(getText('meta.resultCount', '{0} results'), state.loadedResults);
 }
 
-function renderResults(items, append = false) {
-    if (!append) {
-        resultListEl.innerHTML = '';
-    }
+function renderResults() {
+    resultListEl.innerHTML = '';
+    resultListEl.classList.toggle('mode-list', state.viewMode === 'list');
 
-    if (!items.length) {
-        if (!append) {
-            resultMetaEl.textContent = getText('meta.noResults', 'No results found');
-        }
+    if (!state.displayedItems.length) {
+        resultMetaEl.textContent = getText('meta.noResults', 'No results found');
+        updateExpandToggleButton();
         return;
     }
 
-    items.forEach((item) => {
-        resultListEl.appendChild(createResultElement(item));
+    if (state.viewMode === 'list') {
+        renderListResults();
+        updateExpandToggleButton();
+        return;
+    }
+
+    const root = buildResultTree(state.displayedItems);
+    const folders = Array.from(root.folders.values()).sort(compareByName);
+    const files = Array.from(root.files.values()).sort(compareByName);
+
+    folders.forEach((folderNode) => {
+        resultListEl.appendChild(createFolderElement(folderNode));
     });
+
+    files.forEach((fileNode) => {
+        resultListEl.appendChild(createFileElement(fileNode));
+    });
+
+    updateExpandToggleButton();
+}
+
+function renderListResults() {
+    const groups = buildListFileGroups(state.displayedItems);
+    groups.forEach((group) => {
+        resultListEl.appendChild(createListFileGroupElement(group));
+    });
+}
+
+function buildListFileGroups(items) {
+    const groupMap = new Map();
+
+    items.forEach((item) => {
+        const normalizedPath = normalizeRelativePath(item.relativePath);
+        const filePath = normalizedPath || item.relativePath || '';
+
+        if (!groupMap.has(filePath)) {
+            groupMap.set(filePath, {
+                filePath,
+                fileName: filePath.split('/').filter(Boolean).pop() || filePath,
+                matches: []
+            });
+        }
+
+        groupMap.get(filePath).matches.push(item);
+    });
+
+    const groups = Array.from(groupMap.values());
+    groups.sort((a, b) => a.filePath.localeCompare(b.filePath, undefined, { sensitivity: 'base' }));
+    groups.forEach((group) => {
+        group.matches.sort((a, b) => {
+            if (a.line !== b.line) {
+                return a.line - b.line;
+            }
+
+            return (a.symbolName || '').localeCompare(b.symbolName || '', undefined, { sensitivity: 'base' });
+        });
+    });
+
+    return groups;
+}
+
+function createListFileGroupElement(group) {
+    const li = document.createElement('li');
+    li.className = 'result-list-file-group';
+    const expanded = isNodeExpanded('list-file', group.filePath);
+
+    const fileRow = document.createElement('div');
+    fileRow.className = 'result-list-file-row';
+
+    const left = document.createElement('div');
+    left.className = 'result-list-main';
+
+    left.appendChild(createDisclosure(expanded));
+
+    const icon = document.createElement('span');
+    icon.className = 'result-symbol-icon';
+    icon.textContent = 'C#';
+
+    const name = document.createElement('span');
+    name.className = 'result-list-file-name';
+    name.textContent = group.fileName;
+
+    left.appendChild(icon);
+    left.appendChild(name);
+
+    const meta = document.createElement('span');
+    meta.className = 'result-list-file-meta';
+    meta.textContent = group.filePath;
+
+    const count = createCountBadge(group.matches.length);
+    count.classList.add('result-list-file-count');
+
+    fileRow.appendChild(left);
+    fileRow.appendChild(meta);
+    fileRow.appendChild(count);
+
+    const symbols = document.createElement('ul');
+    symbols.className = 'result-list-symbols';
+    symbols.hidden = !expanded;
+
+    group.matches.forEach((item) => {
+        symbols.appendChild(createListSymbolElement(item));
+    });
+
+    fileRow.addEventListener('click', () => {
+        const nextExpanded = !symbols.hidden;
+        symbols.hidden = nextExpanded;
+        setNodeExpanded('list-file', group.filePath, !nextExpanded);
+        const disclosure = fileRow.querySelector('.result-tree-disclosure');
+        updateDisclosureIcon(disclosure, !nextExpanded);
+    });
+
+    li.appendChild(fileRow);
+    li.appendChild(symbols);
+    return li;
+}
+
+function createListSymbolElement(item) {
+    const li = document.createElement('li');
+    li.className = 'result-list-symbol-item';
+
+    const detail = document.createElement('span');
+    detail.className = 'result-list-symbol-detail';
+    applyHighlightedText(detail, buildDetailText(item), state.query);
+
+    li.appendChild(detail);
+
+    li.addEventListener('click', () => {
+        vscode.postMessage({
+            type: 'openResult',
+            uri: item.uri,
+            line: item.line
+        });
+    });
+
+    return li;
 }
 
 function requestLoadMore() {
@@ -400,10 +894,6 @@ function buildMetaText(item) {
 }
 
 function buildDetailText(item) {
-    if (item.kindId === 'type' || item.kindId === 'method' || item.kindId === 'member' || item.kindId === 'impl') {
-        return item.preview;
-    }
-
     return item.preview;
 }
 
@@ -460,6 +950,23 @@ matchModeGroupEl?.addEventListener('click', (event) => {
     triggerSearch();
 });
 
+viewModeToggleBtnEl?.addEventListener('click', () => {
+    const nextViewMode = state.viewMode === 'tree' ? 'list' : 'tree';
+    setViewMode(nextViewMode);
+    renderResults();
+    updateResultMeta();
+});
+
+toggleExpandBtnEl?.addEventListener('click', () => {
+    if (!hasCollapsibleNodes()) {
+        return;
+    }
+
+    const shouldCollapse = areAllCollapsibleNodesExpanded();
+    setAllNodesExpanded(!shouldCollapse);
+    renderResults();
+});
+
 window.addEventListener('scroll', () => {
     tryLoadMoreIfNeeded();
 });
@@ -489,6 +996,8 @@ window.addEventListener('message', (event) => {
             exactModeBtnEl.setAttribute('title', getText('match.exact', 'Exact'));
         }
         setMatchMode(state.matchMode);
+        setViewMode(state.viewMode, false);
+        updateExpandToggleButton();
         updateClearButtonVisibility();
         renderTabs();
         if (!state.indexStatus.isReady) {
@@ -507,10 +1016,12 @@ window.addEventListener('message', (event) => {
         state.totalResults = Number.isFinite(message.total) ? Math.max(0, Math.round(message.total)) : items.length;
 
         if (!append) {
+            state.expandedNodeState = {};
+            state.displayedItems = items;
             state.loadedResults = items.length;
             state.hasMore = message.hasMore === true;
             state.isLoadingMore = false;
-            renderResults(items, false);
+            renderResults();
             updateResultMeta();
             setTimeout(() => {
                 tryLoadMoreIfNeeded();
@@ -518,10 +1029,11 @@ window.addEventListener('message', (event) => {
             return;
         }
 
+        state.displayedItems = state.displayedItems.concat(items);
         state.loadedResults += items.length;
         state.hasMore = message.hasMore === true;
         state.isLoadingMore = false;
-        renderResults(items, true);
+        renderResults();
         updateResultMeta();
         setTimeout(() => {
             tryLoadMoreIfNeeded();

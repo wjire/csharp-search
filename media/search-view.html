@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';" />
+        content="default-src 'none'; style-src {{cspSource}}; font-src {{cspSource}}; script-src 'nonce-{{nonce}}';" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>C# Search</title>
+    <link rel="stylesheet" href="{{codiconCssUri}}" />
     <link rel="stylesheet" href="{{cssUri}}" />
 </head>
 
@@ -24,9 +25,21 @@
                     </svg>
                 </button>
             </div>
-            <div id="matchModeGroup" class="match-mode-group" role="group" aria-label="Match mode">
-                <button id="fuzzyModeBtn" class="match-mode-btn active" type="button" data-mode="fuzzy">Fuzzy</button>
-                <button id="exactModeBtn" class="match-mode-btn" type="button" data-mode="exact">Exact</button>
+            <div class="header-controls">
+                <div id="matchModeGroup" class="match-mode-group" role="group" aria-label="Match mode">
+                    <button id="fuzzyModeBtn" class="match-mode-btn active" type="button"
+                        data-mode="fuzzy">Fuzzy</button>
+                    <button id="exactModeBtn" class="match-mode-btn" type="button" data-mode="exact">Exact</button>
+                </div>
+                <div class="toolbar-icons">
+                    <button id="viewModeToggleBtn" class="toolbar-action-btn" type="button" title="Tree View"
+                        aria-label="Tree View">
+                        <span id="viewModeToggleIcon" class="codicon codicon-list-tree" aria-hidden="true"></span>
+                    </button>
+                    <button id="toggleExpandBtn" class="toolbar-action-btn" type="button" title="Collapse All">
+                        <span id="toggleExpandIcon" class="codicon codicon-collapse-all" aria-hidden="true"></span>
+                    </button>
+                </div>
             </div>
             <div id="resultMeta" class="result-meta"></div>
         </div>

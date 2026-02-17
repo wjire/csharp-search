@@ -25,6 +25,8 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
   - `Impl`: implementations by interface/base type.
 - Real-time search while typing.
 - Switchable match modes: `Fuzzy` / `Exact`.
+- Switchable result view: `Tree` / `List` (single toolbar toggle button).
+- Single-click `Expand/Collapse All` in result view toolbar.
 - Click a result to open file and jump to line.
 - Focus search view shortcut: `Ctrl+T` (`Cmd+T` on macOS), same as Visual Studio.
 - Incremental in-memory index with file watcher updates.
@@ -45,13 +47,14 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 
 ### Understanding Search Results
 
-- Each result item shows three lines: **name**, **meta**, and **detail**.
-- **Name**: matched symbol name.
-- **Meta**:
-  - `Type`: project name.
-  - `Method` / `Member` / `Impl`: `project / owner type` (for example, `MyApp / OrderService`).
-- **Detail**: code preview snippet for quick identification.
-- Clicking any result opens the source file and jumps to the exact line.
+- Two display modes are available in the toolbar:
+  - `Tree`: folder → file (`.cs`) → matched line content.
+  - `List`: file (`.cs`) groups → matched line content.
+- In both modes:
+  - Last-level entries show matched **full line preview** with query highlight.
+  - File/group rows show result count badges.
+  - Expand/collapse states are supported and can be toggled globally via toolbar.
+- Clicking any last-level match opens the source file and jumps to the exact line.
 - Result meta shows loaded count and total count while more pages are available.
 - A single query returns up to `csharpSearch.maxResults` items (default `500`); if more matches exist, only the first N are kept.
 
@@ -134,6 +137,8 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
   - `实现`：按接口/基类检索实现或派生类型。
 - 输入即搜，实时返回结果。
 - 支持“模糊匹配 / 精确匹配”切换。
+- 支持结果视图切换：`树形 / 列表`（顶部单按钮切换）。
+- 支持结果区一键“全部展开 / 全部折叠”。
 - 点击结果可打开文件并定位到行。
 - 聚焦搜索视图快捷键：`Ctrl+T`（macOS 为 `Cmd+T`），与 Visual Studio 一致。
 - 内存增量索引 + 文件监听更新。
@@ -154,13 +159,14 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 
 ### 搜索结果说明
 
-- 每条结果显示三行信息：**名称**、**元信息**、**详情**。
-- **名称**：命中的符号名。
-- **元信息**：
-  - `类型`：项目名。
-  - `方法` / `成员` / `实现`：`项目名 / 所属类型`（例如 `MyApp / OrderService`）。
-- **详情**：代码预览片段，用于快速识别。
-- 点击任意结果会打开源文件并跳转到对应行。
+- 顶部工具栏支持两种结果视图：
+  - `树形`：目录 → 文件（`.cs`）→ 命中行内容。
+  - `列表`：文件（`.cs`）分组 → 命中行内容。
+- 两种视图下：
+  - 最后一层均显示命中的**整行代码预览**，并保留关键字高亮。
+  - 文件/分组层显示命中数量徽标。
+  - 支持节点展开/折叠，并可通过工具栏进行全局展开/折叠。
+- 点击任意最后一层命中项，会打开源文件并跳转到对应行。
 - 结果区在存在更多分页时会显示“已加载/总数”。
 - 单次查询最多返回 `csharpSearch.maxResults` 配置的条数（默认 `500`）；若实际命中更多，仅保留前 N 条。
 

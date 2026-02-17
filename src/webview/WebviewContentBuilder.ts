@@ -16,10 +16,14 @@ export class WebviewContentBuilder {
         const nonce = this.getNonce();
         const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'search-view.css'));
         const jsUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'search-view.js'));
+        const codiconCssUri = webview.asWebviewUri(
+            vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
+        );
 
         return htmlTemplate
             .replace(/\{\{cspSource\}\}/g, webview.cspSource)
             .replace(/\{\{nonce\}\}/g, nonce)
+            .replace(/\{\{codiconCssUri\}\}/g, codiconCssUri.toString())
             .replace(/\{\{cssUri\}\}/g, cssUri.toString())
             .replace(/\{\{jsUri\}\}/g, jsUri.toString());
     }

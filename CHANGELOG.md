@@ -4,6 +4,17 @@
 
 ## English
 
+### [1.0.6] - 2026-02-17
+
+#### Added
+
+- Added result view toolbar with single-toggle buttons for `Tree/List` and `Expand/Collapse All`.
+- Added list-mode grouped layout: `file (.cs)` row with expandable matched entries.
+
+#### Changed
+
+- Refactored search result UI to support compact hierarchical rendering in both `Tree` and `List` modes.
+
 ### [1.0.5] - 2026-02-17
 
 #### Added
@@ -70,6 +81,17 @@
 - Click-to-open search results with line navigation.
 
 ## 中文
+
+### [1.0.6] - 2026-02-17
+
+#### 新增
+
+- 新增结果工具栏：`树形/列表` 单按钮切换、`全部展开/全部折叠` 单按钮切换。
+- 新增列表模式分组展示：按 `.cs` 文件分组，并支持文件层展开/折叠命中项。
+
+#### 变更
+
+- 搜索结果 UI 重构为更紧凑的层级展示，树形与列表两种模式可切换。
 
 ### [1.0.5] - 2026-02-17
 

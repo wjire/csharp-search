@@ -87,8 +87,8 @@ export class LanguageManager {
         const vscodeLanguage = vscode.env.language.toLowerCase();
 
         // 判断是否为中文环境
-        this.currentLanguage = vscodeLanguage.startsWith('zh') ? 'zh-cn' : 'en';
-        // this.currentLanguage = 'en';
+        // this.currentLanguage = vscodeLanguage.startsWith('zh') ? 'zh-cn' : 'en';
+        this.currentLanguage = 'en';
     }
 
     /**

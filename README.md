@@ -12,8 +12,8 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 
 ### Preview
 
-![Type Search](media/images/view.png)
-![Member Search](media/images/search.png)
+![Tree View](media/images/tree.png)
+![List View](media/images/list.png)
 
 ### Features
 
@@ -23,14 +23,11 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
   - `Method`: methods and constructors.
   - `Member`: fields and properties.
   - `Impl`: implementations by interface/base type.
-- Real-time search while typing.
-- Switchable match modes: `Fuzzy` / `Exact`.
 - Switchable result view: `Tree` / `List` (single toolbar toggle button).
 - Single-click `Expand/Collapse All` in result view toolbar.
 - Click a result to open file and jump to line.
 - Focus search view shortcut: `Ctrl+T` (`Cmd+T` on macOS), same as Visual Studio.
 - Incremental in-memory index with file watcher updates.
-- Bilingual webview UI (Chinese/English) following VS Code language.
 
 ### Search Behavior
 
@@ -87,25 +84,6 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 - Range: `50-1000`
 - Description: Maximum number of results returned per query.
 
-### Localization
-
-- Webview texts are provided by the extension host and switch automatically via `vscode.env.language`.
-- Manifest strings are localized through VS Code `package.nls` files:
-  - `package.nls.json` (default/en)
-  - `package.nls.zh-cn.json` (zh-cn)
-
-### Project Structure
-
-- `src/search/ISymbolSearcher.ts`: search strategy interface.
-- `src/search/SymbolSearchService.ts`: search orchestration.
-- `src/search/SymbolIndexCache.ts`: symbol index + file watching.
-- `src/search/searchers/TypeSearcher.ts`: type search strategy.
-- `src/search/searchers/MethodSearcher.ts`: method search strategy.
-- `src/search/searchers/MemberSearcher.ts`: field/property search strategy.
-- `src/search/searchers/ImplementationSearcher.ts`: implementation search strategy.
-- `src/webview/CSharpSearchViewProvider.ts`: webview message bridge.
-- `media/search-view.*`: webview UI.
-
 ### Development
 
 - Install dependencies: `npm install`
@@ -124,8 +102,8 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 
 ### 预览
 
-![类型搜索](media/images/view.png)
-![成员搜索](media/images/search.png)
+![树形视图](media/images/tree.png)
+![列表视图](media/images/list.png)
 
 ### 功能特性
 
@@ -135,14 +113,11 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
   - `方法`：方法与构造函数。
   - `成员`：字段与属性。
   - `实现`：按接口/基类检索实现或派生类型。
-- 输入即搜，实时返回结果。
-- 支持“模糊匹配 / 精确匹配”切换。
 - 支持结果视图切换：`树形 / 列表`（顶部单按钮切换）。
 - 支持结果区一键“全部展开 / 全部折叠”。
 - 点击结果可打开文件并定位到行。
 - 聚焦搜索视图快捷键：`Ctrl+T`（macOS 为 `Cmd+T`），与 Visual Studio 一致。
 - 内存增量索引 + 文件监听更新。
-- Webview 界面支持中英双语并跟随 VS Code 语言。
 
 ### 搜索逻辑
 
@@ -198,25 +173,6 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 - 默认：`500`
 - 范围：`50-1000`
 - 说明：单次查询返回结果上限。
-
-### 本地化
-
-- Webview 文案由扩展端下发，基于 `vscode.env.language` 自动切换。
-- 扩展清单文案使用 VS Code 的 `package.nls` 机制：
-  - `package.nls.json`（默认/英文）
-  - `package.nls.zh-cn.json`（中文）
-
-### 目录结构
-
-- `src/search/ISymbolSearcher.ts`：搜索策略接口。
-- `src/search/SymbolSearchService.ts`：搜索编排。
-- `src/search/SymbolIndexCache.ts`：符号索引与文件监听。
-- `src/search/searchers/TypeSearcher.ts`：类型检索。
-- `src/search/searchers/MethodSearcher.ts`：方法检索。
-- `src/search/searchers/MemberSearcher.ts`：字段/属性检索。
-- `src/search/searchers/ImplementationSearcher.ts`：实现/派生类型检索。
-- `src/webview/CSharpSearchViewProvider.ts`：Webview 消息桥接。
-- `media/search-view.*`：Webview 前端。
 
 ### 开发
 

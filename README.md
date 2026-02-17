@@ -8,7 +8,7 @@
 
 ## English
 
-A focused VS Code extension for searching C# symbols from a dedicated Activity Bar view.
+A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl` C# symbols from a dedicated Activity Bar view.
 
 ### Preview
 
@@ -90,7 +90,7 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 
 ## 中文
 
-一个专注于 C# 符号检索的 VS Code 扩展，提供独立的活动栏搜索视图。
+一个专注于 C# 符号检索的 VS Code 扩展，支持 `类型`、`方法`、`成员`、`实现` 四类检索，并提供独立的活动栏搜索视图。
 
 ### 预览
 

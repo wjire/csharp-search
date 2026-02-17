@@ -6,7 +6,11 @@ const textDecoder = new TextDecoder('utf-8');
 const INITIAL_INDEX_BATCH_SIZE = 20;
 const CONFIG_SECTION = 'csharpSearch';
 const EXCLUDE_FOLDERS_KEY = 'excludeFolders';
+const MAX_RESULTS_KEY = 'maxResults';
 const DEFAULT_EXCLUDED_FOLDERS = ['bin', 'obj', '.github', '.vscode'];
+const DEFAULT_MAX_RESULTS = 500;
+const MIN_MAX_RESULTS = 50;
+const MAX_MAX_RESULTS = 1000;
 
 interface IndexedSearchResultItem extends SearchResultItem {
     symbolNameLower: string;
@@ -102,6 +106,7 @@ export class SymbolIndexCache implements vscode.Disposable {
         if (normalizedQuery.length === 0) {
             return [];
         }
+        const maxResults = this.getMaxResults();
 
         const matched: SearchResultItem[] = [];
         for (const symbols of symbolsByFile.values()) {
@@ -117,7 +122,7 @@ export class SymbolIndexCache implements vscode.Disposable {
                 }
 
                 matched.push(symbol);
-                if (matched.length >= 500) {
+                if (matched.length >= maxResults) {
                     return matched;
                 }
             }
@@ -262,6 +267,17 @@ export class SymbolIndexCache implements vscode.Disposable {
             .filter((folder) => folder.length > 0);
 
         return new Set(normalized);
+    }
+
+    private getMaxResults(): number {
+        const configuration = vscode.workspace.getConfiguration(CONFIG_SECTION);
+        const configuredValue = configuration.get<number>(MAX_RESULTS_KEY, DEFAULT_MAX_RESULTS);
+
+        if (typeof configuredValue !== 'number' || Number.isNaN(configuredValue)) {
+            return DEFAULT_MAX_RESULTS;
+        }
+
+        return Math.min(MAX_MAX_RESULTS, Math.max(MIN_MAX_RESULTS, Math.round(configuredValue)));
     }
 
     private async yieldToEventLoop(): Promise<void> {

@@ -94,6 +94,14 @@
                     "maximum": 1000,
                     "scope": "resource",
                     "markdownDescription": "%config.searchDebounceMs.markdownDescription%"
+                },
+                "csharpSearch.maxResults": {
+                    "type": "number",
+                    "default": 500,
+                    "minimum": 50,
+                    "maximum": 1000,
+                    "scope": "resource",
+                    "markdownDescription": "%config.maxResults.markdownDescription%"
                 }
             }
         }

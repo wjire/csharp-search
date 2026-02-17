@@ -12,8 +12,8 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 
 ### Preview
 
-![Type Search](media/images/type.png)
-![Member Search](media/images/member.png)
+![Type Search](media/images/view.png)
+![Member Search](media/images/search.png)
 
 ### Features
 
@@ -38,9 +38,20 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 - During initial indexing, the search view shows indexing status/progress.
 - Excludes `bin`, `obj`, `.git`, `.github`, `.vscode` by default.
 - Updates cache incrementally on create/change/delete events.
-- Supports `Fuzzy` / `Exact` mode switching, with case-insensitive matching, and returns up to 500 results.
+- Supports `Fuzzy` / `Exact` mode switching, with case-insensitive matching, and returns up to the configured `csharpSearch.maxResults` (default `500`).
 - In `Impl`, search supports implementation type names and interface/base type names.
 - Input placeholder text updates by active tab to indicate expected query intent.
+
+### Understanding Search Results
+
+- Each result item shows three lines: **name**, **meta**, and **detail**.
+- **Name**: matched symbol name.
+- **Meta**:
+  - `Type`: project name.
+  - `Method` / `Member` / `Impl`: `project / owner type` (for example, `MyApp / OrderService`).
+- **Detail**: code preview snippet for quick identification.
+- Clicking any result opens the source file and jumps to the exact line.
+- A single query returns up to `csharpSearch.maxResults` items (default `500`); if more matches exist, only the first N are shown.
 
 ### Configuration
 
@@ -56,6 +67,13 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 - Default: `300`
 - Range: `0-1000`
 - Description: Debounce delay (ms) before sending search request while typing.
+
+#### `csharpSearch.maxResults`
+
+- Type: `number`
+- Default: `500`
+- Range: `50-1000`
+- Description: Maximum number of results returned per query.
 
 ### Localization
 
@@ -94,8 +112,8 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 
 ### 预览
 
-![类型搜索](media/images/type.png)
-![成员搜索](media/images/member.png)
+![类型搜索](media/images/view.png)
+![成员搜索](media/images/search.png)
 
 ### 功能特性
 
@@ -120,9 +138,20 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 - 首次索引期间，搜索视图会展示索引状态/进度。
 - 默认排除 `bin`、`obj`、`.git`、`.github`、`.vscode`。
 - 文件新增/修改/删除后增量刷新缓存。
-- 支持“模糊匹配 / 精确匹配”切换，匹配大小写不敏感，最多返回 500 条。
+- 支持“模糊匹配 / 精确匹配”切换，匹配大小写不敏感，单次最多返回 `csharpSearch.maxResults` 配置的条数（默认 `500`）。
 - 在“实现”标签下，可按实现类名、接口名或基类名检索。
 - 输入框提示会根据当前标签动态切换，降低误搜成本。
+
+### 搜索结果说明
+
+- 每条结果显示三行信息：**名称**、**元信息**、**详情**。
+- **名称**：命中的符号名。
+- **元信息**：
+  - `类型`：项目名。
+  - `方法` / `成员` / `实现`：`项目名 / 所属类型`（例如 `MyApp / OrderService`）。
+- **详情**：代码预览片段，用于快速识别。
+- 点击任意结果会打开源文件并跳转到对应行。
+- 单次查询最多返回 `csharpSearch.maxResults` 配置的条数（默认 `500`）；若实际命中更多，界面仅展示前 N 条。
 
 ### 配置项
 
@@ -138,6 +167,13 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 - 默认：`300`
 - 范围：`0-1000`
 - 说明：输入时发送搜索请求前的防抖延迟（毫秒）。
+
+#### `csharpSearch.maxResults`
+
+- 类型：`number`
+- 默认：`500`
+- 范围：`50-1000`
+- 说明：单次查询返回结果上限。
 
 ### 本地化
 

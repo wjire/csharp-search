@@ -16,6 +16,8 @@ const state = {
     loadedResults: 0,
     hasMore: false,
     isLoadingMore: false,
+    isPreparingGlobalToggle: false,
+    pendingGlobalExpandState: undefined,
     indexStatus: {
         isReady: false,
         isIndexing: true,
@@ -76,6 +78,13 @@ function resetPagingState() {
     state.loadedResults = 0;
     state.hasMore = false;
     state.isLoadingMore = false;
+    state.isPreparingGlobalToggle = false;
+    state.pendingGlobalExpandState = undefined;
+}
+
+function clearPendingGlobalToggle() {
+    state.isPreparingGlobalToggle = false;
+    state.pendingGlobalExpandState = undefined;
 }
 
 function renderTabs() {
@@ -255,6 +264,15 @@ function updateExpandToggleButton() {
         return;
     }
 
+    if (state.isPreparingGlobalToggle) {
+        toggleExpandBtnEl.disabled = true;
+        toggleExpandIconEl.className = 'codicon codicon-loading codicon-modifier-spin';
+        const title = getText('view.loadingAll', 'Loading all results...');
+        toggleExpandBtnEl.setAttribute('title', title);
+        toggleExpandBtnEl.setAttribute('aria-label', title);
+        return;
+    }
+
     const hasNodes = hasCollapsibleNodes();
     toggleExpandBtnEl.disabled = !hasNodes;
 
@@ -376,6 +394,23 @@ function setAllNodesExpanded(expanded) {
             }
         }
     }
+}
+
+function continuePendingGlobalToggleIfNeeded() {
+    if (!state.isPreparingGlobalToggle || typeof state.pendingGlobalExpandState !== 'boolean') {
+        return;
+    }
+
+    if (state.hasMore) {
+        requestLoadMore();
+        return;
+    }
+
+    const targetExpanded = state.pendingGlobalExpandState;
+    clearPendingGlobalToggle();
+    setAllNodesExpanded(targetExpanded);
+    renderResults();
+    updateResultMeta();
 }
 
 function scheduleSearch() {
@@ -963,7 +998,17 @@ toggleExpandBtnEl?.addEventListener('click', () => {
     }
 
     const shouldCollapse = areAllCollapsibleNodesExpanded();
-    setAllNodesExpanded(!shouldCollapse);
+    const targetExpanded = !shouldCollapse;
+
+    if (state.hasMore) {
+        state.isPreparingGlobalToggle = true;
+        state.pendingGlobalExpandState = targetExpanded;
+        updateExpandToggleButton();
+        requestLoadMore();
+        return;
+    }
+
+    setAllNodesExpanded(targetExpanded);
     renderResults();
 });
 
@@ -1016,6 +1061,7 @@ window.addEventListener('message', (event) => {
         state.totalResults = Number.isFinite(message.total) ? Math.max(0, Math.round(message.total)) : items.length;
 
         if (!append) {
+            clearPendingGlobalToggle();
             state.expandedNodeState = {};
             state.displayedItems = items;
             state.loadedResults = items.length;
@@ -1023,6 +1069,7 @@ window.addEventListener('message', (event) => {
             state.isLoadingMore = false;
             renderResults();
             updateResultMeta();
+            continuePendingGlobalToggleIfNeeded();
             setTimeout(() => {
                 tryLoadMoreIfNeeded();
             }, 0);
@@ -1035,6 +1082,7 @@ window.addEventListener('message', (event) => {
         state.isLoadingMore = false;
         renderResults();
         updateResultMeta();
+        continuePendingGlobalToggleIfNeeded();
         setTimeout(() => {
             tryLoadMoreIfNeeded();
         }, 0);

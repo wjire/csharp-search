@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { SymbolSearchService } from '../search/SymbolSearchService';
-import { SearchMatchMode, SerializableSearchResultItem } from '../search/types';
+import { IndexStatus, SearchMatchMode, SerializableSearchResultItem } from '../search/types';
 import { WebviewContentBuilder } from './WebviewContentBuilder';
 import { lang } from '../languageManager';
 
@@ -37,6 +37,7 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
     private readonly searchService: SymbolSearchService;
     private readonly contentBuilder: WebviewContentBuilder;
     private readonly configWatcher: vscode.Disposable;
+    private readonly indexStatusSubscription: vscode.Disposable;
     private currentWebview: vscode.Webview | undefined;
 
     public constructor(context: vscode.ExtensionContext, searchService: SymbolSearchService) {
@@ -50,10 +51,14 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
 
             this.postRuntimeConfigUpdate();
         });
+        this.indexStatusSubscription = this.searchService.onDidChangeIndexStatus((status) => {
+            this.postIndexStatusUpdate(status);
+        });
     }
 
     public dispose(): void {
         this.configWatcher.dispose();
+        this.indexStatusSubscription.dispose();
     }
 
     public async resolveWebviewView(webviewView: vscode.WebviewView): Promise<void> {
@@ -103,6 +108,17 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
         });
     }
 
+    private postIndexStatusUpdate(status: IndexStatus): void {
+        if (!this.currentWebview) {
+            return;
+        }
+
+        this.currentWebview.postMessage({
+            type: 'indexStatusUpdated',
+            status
+        });
+    }
+
     private postInitMessage(webview: vscode.Webview): void {
         const kinds = this.searchService.getKinds();
         webview.postMessage({
@@ -110,7 +126,8 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
             kinds,
             activeKindId: kinds[0]?.id ?? '',
             texts: lang.getWebViewTexts(),
-            searchDebounceMs: this.getSearchDebounceMs()
+            searchDebounceMs: this.getSearchDebounceMs(),
+            indexStatus: this.searchService.getIndexStatus()
         });
     }
 

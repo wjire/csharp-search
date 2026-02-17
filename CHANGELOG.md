@@ -4,6 +4,18 @@
 
 ## English
 
+### [1.0.4] - 2026-02-17
+
+#### Added
+
+- Added indexing status/progress in the search view, visible immediately after opening the panel.
+- Added a short `Index is ready` hint after initial indexing completes.
+
+#### Changed
+
+- During initial indexing, search requests are deferred and automatically executed once the index is ready.
+- Activation is now explicitly bound to `onView:csharpSearch.mainView` (activates when the panel is first opened).
+
 ### [1.0.3] - 2026-02-17
 
 #### Changed
@@ -44,6 +56,18 @@
 - Click-to-open search results with line navigation.
 
 ## 中文
+
+### [1.0.4] - 2026-02-17
+
+#### 新增
+
+- 搜索面板打开后即可看到索引状态/进度，无需先输入关键字。
+- 首次索引完成后新增短暂“索引已完成”提示。
+
+#### 变更
+
+- 首次索引期间会延迟搜索请求，索引就绪后自动发起搜索。
+- 激活时机显式绑定为 `onView:csharpSearch.mainView`（首次打开面板时激活）。
 
 ### [1.0.3] - 2026-02-17
 

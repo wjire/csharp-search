@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ISymbolSearcher } from './ISymbolSearcher';
 import { SymbolIndexCache } from './SymbolIndexCache';
-import { SearchKindDefinition, SearchMatchMode, SearchResultItem, SerializableSearchResultItem } from './types';
+import { IndexStatus, SearchKindDefinition, SearchMatchMode, SearchResultItem, SerializableSearchResultItem } from './types';
 
 export class SymbolSearchService implements vscode.Disposable {
     private readonly searchersByKindId: Map<string, ISymbolSearcher>;
@@ -18,6 +18,14 @@ export class SymbolSearchService implements vscode.Disposable {
 
     public async warmup(): Promise<void> {
         await this.symbolIndexCache.ensureReady();
+    }
+
+    public get onDidChangeIndexStatus(): vscode.Event<IndexStatus> {
+        return this.symbolIndexCache.onDidChangeIndexStatus;
+    }
+
+    public getIndexStatus(): IndexStatus {
+        return this.symbolIndexCache.getIndexStatus();
     }
 
     public getKinds(): SearchKindDefinition[] {

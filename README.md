@@ -32,7 +32,10 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 
 ### Search Behavior
 
-- Builds an in-memory index for workspace `*.cs` files on startup.
+- The extension activates when the `C# Search` panel is opened for the first time.
+- Triggering the focus command (`Ctrl+T` / `Cmd+T`) also opens the panel and activates the extension if it is not active yet.
+- After activation, it builds an in-memory index for workspace `*.cs` files.
+- During initial indexing, the search view shows indexing status/progress.
 - Excludes `bin`, `obj`, `.git`, `.github`, `.vscode` by default.
 - Updates cache incrementally on create/change/delete events.
 - Supports `Fuzzy` / `Exact` mode switching, with case-insensitive matching, and returns up to 500 results.
@@ -111,7 +114,10 @@ A focused VS Code extension for searching C# symbols from a dedicated Activity B
 
 ### 搜索逻辑
 
-- 启动时构建工作区 `*.cs` 文件内存索引。
+- 首次打开 `C# Search` 面板时激活扩展。
+- 触发聚焦命令（`Ctrl+T` / `Cmd+T`）也会打开该面板；若扩展尚未激活，将在此时激活。
+- 激活后开始构建工作区 `*.cs` 文件内存索引。
+- 首次索引期间，搜索视图会展示索引状态/进度。
 - 默认排除 `bin`、`obj`、`.git`、`.github`、`.vscode`。
 - 文件新增/修改/删除后增量刷新缓存。
 - 支持“模糊匹配 / 精确匹配”切换，匹配大小写不敏感，最多返回 500 条。

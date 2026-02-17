@@ -7,13 +7,21 @@ const state = {
     requestId: 0,
     searchDebounceMs: 300,
     kinds: [],
-    texts: {}
+    texts: {},
+    indexStatus: {
+        isReady: false,
+        isIndexing: true,
+        totalFiles: 0,
+        indexedFiles: 0
+    }
 };
 
 const MIN_SEARCH_DEBOUNCE_MS = 0;
 const MAX_SEARCH_DEBOUNCE_MS = 1000;
+const INDEX_READY_HINT_MS = 1500;
 
 let searchDebounceTimer = undefined;
+let indexReadyHintTimer = undefined;
 
 const tabsEl = document.getElementById('tabs');
 const searchBoxEl = document.querySelector('.search-box');
@@ -90,16 +98,83 @@ function updateInputPlaceholder() {
     queryInputEl.placeholder = getPlaceholderByKind(state.activeKindId);
 }
 
+function normalizeIndexStatus(status) {
+    if (!status || typeof status !== 'object') {
+        return {
+            isReady: false,
+            isIndexing: true,
+            totalFiles: 0,
+            indexedFiles: 0
+        };
+    }
+
+    const totalFiles = Number.isFinite(status.totalFiles) ? Math.max(0, Math.round(status.totalFiles)) : 0;
+    const indexedFiles = Number.isFinite(status.indexedFiles)
+        ? Math.max(0, Math.min(totalFiles || Number.MAX_SAFE_INTEGER, Math.round(status.indexedFiles)))
+        : 0;
+
+    return {
+        isReady: status.isReady === true,
+        isIndexing: status.isIndexing === true,
+        totalFiles,
+        indexedFiles: totalFiles > 0 ? Math.min(indexedFiles, totalFiles) : indexedFiles
+    };
+}
+
+function getIndexingMetaText() {
+    const { indexedFiles, totalFiles } = state.indexStatus;
+    if (totalFiles > 0) {
+        return formatText(
+            getText('meta.indexingProgress', 'Building index ({0}/{1}), search will run automatically'),
+            indexedFiles,
+            totalFiles
+        );
+    }
+
+    return getText('meta.indexing', 'Building index, please wait...');
+}
+
+function clearIndexReadyHintTimer() {
+    if (!indexReadyHintTimer) {
+        return;
+    }
+
+    clearTimeout(indexReadyHintTimer);
+    indexReadyHintTimer = undefined;
+}
+
+function showIndexReadyHint() {
+    clearIndexReadyHintTimer();
+
+    const hintText = getText('meta.indexReady', 'Index is ready');
+    resultMetaEl.textContent = hintText;
+
+    indexReadyHintTimer = setTimeout(() => {
+        indexReadyHintTimer = undefined;
+        if (resultMetaEl.textContent === hintText) {
+            resultMetaEl.textContent = '';
+        }
+    }, INDEX_READY_HINT_MS);
+}
+
 function triggerSearch() {
+    clearIndexReadyHintTimer();
+
     state.query = queryInputEl.value.trim();
     updateClearButtonVisibility();
-    const currentRequestId = String(++state.requestId);
 
     if (!state.activeKindId || !state.query) {
         resultListEl.innerHTML = '';
         resultMetaEl.textContent = '';
         return;
     }
+
+    if (!state.indexStatus.isReady) {
+        resultMetaEl.textContent = getIndexingMetaText();
+        return;
+    }
+
+    const currentRequestId = String(++state.requestId);
 
     resultMetaEl.textContent = getText('meta.searching', 'Searching...');
     vscode.postMessage({
@@ -317,6 +392,7 @@ window.addEventListener('message', (event) => {
         state.activeKindId = message.activeKindId || state.kinds[0]?.id || '';
         state.texts = message.texts && typeof message.texts === 'object' ? message.texts : {};
         state.searchDebounceMs = normalizeSearchDebounceMs(message.searchDebounceMs);
+        state.indexStatus = normalizeIndexStatus(message.indexStatus);
         updateInputPlaceholder();
         const clearInputText = getText('input.clear', 'Clear input');
         clearQueryBtnEl?.setAttribute('aria-label', clearInputText);
@@ -334,6 +410,9 @@ window.addEventListener('message', (event) => {
         setMatchMode(state.matchMode);
         updateClearButtonVisibility();
         renderTabs();
+        if (!state.indexStatus.isReady) {
+            resultMetaEl.textContent = getIndexingMetaText();
+        }
         return;
     }
 
@@ -348,6 +427,26 @@ window.addEventListener('message', (event) => {
 
     if (message.type === 'configUpdated') {
         state.searchDebounceMs = normalizeSearchDebounceMs(message.searchDebounceMs);
+        return;
+    }
+
+    if (message.type === 'indexStatusUpdated') {
+        const previousReady = state.indexStatus.isReady;
+        state.indexStatus = normalizeIndexStatus(message.status);
+
+        if (!state.indexStatus.isReady) {
+            clearIndexReadyHintTimer();
+            resultMetaEl.textContent = getIndexingMetaText();
+            return;
+        }
+
+        if (!previousReady && queryInputEl.value.trim().length === 0) {
+            showIndexReadyHint();
+        }
+
+        if (!previousReady && queryInputEl.value.trim().length > 0) {
+            triggerSearch();
+        }
     }
 });
 

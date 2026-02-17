@@ -29,3 +29,10 @@ export interface SerializableSearchResultItem {
     projectName: string;
     ownerTypeName?: string;
 }
+
+export interface IndexStatus {
+    isReady: boolean;
+    isIndexing: boolean;
+    totalFiles: number;
+    indexedFiles: number;
+}

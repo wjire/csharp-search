@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ISymbolSearcher } from './ISymbolSearcher';
-import { SearchMatchMode, SearchResultItem } from './types';
+import { IndexStatus, SearchMatchMode, SearchResultItem } from './types';
 
 const textDecoder = new TextDecoder('utf-8');
 const INITIAL_INDEX_BATCH_SIZE = 20;
@@ -17,15 +17,24 @@ export class SymbolIndexCache implements vscode.Disposable {
     private readonly symbolsByKindAndFile: Map<string, Map<string, IndexedSearchResultItem[]>>;
     private readonly watcher: vscode.FileSystemWatcher;
     private readonly configWatcher: vscode.Disposable;
+    private readonly indexStatusEmitter: vscode.EventEmitter<IndexStatus>;
     private readonly initialBuildPromise: Promise<void>;
     private updateQueue: Promise<void>;
     private excludedFolderSet: Set<string>;
+    private indexStatus: IndexStatus;
 
     public constructor(searchers: ISymbolSearcher[]) {
         this.searchersByKindId = new Map(searchers.map((searcher) => [searcher.kind.id, searcher]));
         this.symbolsByKindAndFile = new Map();
         this.updateQueue = Promise.resolve();
         this.excludedFolderSet = this.getExcludedFolderSet();
+        this.indexStatusEmitter = new vscode.EventEmitter<IndexStatus>();
+        this.indexStatus = {
+            isReady: false,
+            isIndexing: false,
+            totalFiles: 0,
+            indexedFiles: 0
+        };
 
         for (const searcher of searchers) {
             this.symbolsByKindAndFile.set(searcher.kind.id, new Map());
@@ -65,6 +74,15 @@ export class SymbolIndexCache implements vscode.Disposable {
     public dispose(): void {
         this.watcher.dispose();
         this.configWatcher.dispose();
+        this.indexStatusEmitter.dispose();
+    }
+
+    public get onDidChangeIndexStatus(): vscode.Event<IndexStatus> {
+        return this.indexStatusEmitter.event;
+    }
+
+    public getIndexStatus(): IndexStatus {
+        return this.indexStatus;
     }
 
     public async ensureReady(): Promise<void> {
@@ -127,14 +145,39 @@ export class SymbolIndexCache implements vscode.Disposable {
 
     private async buildInitialIndex(): Promise<void> {
         const files = await vscode.workspace.findFiles('**/*.cs');
+        const totalFiles = files.length;
+
+        this.updateIndexStatus({
+            isReady: false,
+            isIndexing: true,
+            totalFiles,
+            indexedFiles: 0
+        });
 
         for (let index = 0; index < files.length; index += 1) {
             await this.upsertFile(files[index]);
 
-            if ((index + 1) % INITIAL_INDEX_BATCH_SIZE === 0) {
+            const indexedFiles = index + 1;
+            if (indexedFiles === totalFiles || indexedFiles % INITIAL_INDEX_BATCH_SIZE === 0) {
+                this.updateIndexStatus({
+                    isReady: false,
+                    isIndexing: true,
+                    totalFiles,
+                    indexedFiles
+                });
+            }
+
+            if (indexedFiles % INITIAL_INDEX_BATCH_SIZE === 0) {
                 await this.yieldToEventLoop();
             }
         }
+
+        this.updateIndexStatus({
+            isReady: true,
+            isIndexing: false,
+            totalFiles,
+            indexedFiles: totalFiles
+        });
     }
 
     private async rebuildIndex(): Promise<void> {
@@ -142,6 +185,11 @@ export class SymbolIndexCache implements vscode.Disposable {
             mapByFile.clear();
         }
         await this.buildInitialIndex();
+    }
+
+    private updateIndexStatus(status: IndexStatus): void {
+        this.indexStatus = status;
+        this.indexStatusEmitter.fire(status);
     }
 
     private async upsertFile(uri: vscode.Uri): Promise<void> {

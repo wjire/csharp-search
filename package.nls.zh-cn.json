@@ -7,5 +7,6 @@
   "config.title": "C# Search",
   "config.excludeFolders.markdownDescription": "用于从 C# 符号索引中排除的目录名列表。按目录名匹配，并对工作区路径任意层级生效。",
   "config.searchDebounceMs.markdownDescription": "输入后发起搜索前的防抖时间（毫秒，范围 0-1000），默认 300。",
+  "config.pageSize.markdownDescription": "结果列表滚动加载时每页条数（范围 20-500），默认 100。",
   "config.maxResults.markdownDescription": "单次查询返回结果上限（范围 50-1000），默认 500。"
 }

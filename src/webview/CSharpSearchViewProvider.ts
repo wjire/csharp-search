@@ -6,9 +6,13 @@ import { lang } from '../languageManager';
 
 const CONFIG_SECTION = 'csharpSearch';
 const SEARCH_DEBOUNCE_MS_KEY = 'searchDebounceMs';
+const PAGE_SIZE_KEY = 'pageSize';
 const DEFAULT_SEARCH_DEBOUNCE_MS = 300;
+const DEFAULT_PAGE_SIZE = 100;
 const MIN_SEARCH_DEBOUNCE_MS = 0;
 const MAX_SEARCH_DEBOUNCE_MS = 1000;
+const MIN_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 500;
 
 interface SearchMessage {
     type: 'search';
@@ -16,6 +20,12 @@ interface SearchMessage {
     query: string;
     requestId: string;
     matchMode?: SearchMatchMode;
+}
+
+interface LoadMoreMessage {
+    type: 'loadMore';
+    requestId: string;
+    offset: number;
 }
 
 interface OpenResultMessage {
@@ -28,7 +38,7 @@ interface ReadyMessage {
     type: 'ready';
 }
 
-type IncomingMessage = SearchMessage | OpenResultMessage | ReadyMessage;
+type IncomingMessage = SearchMessage | LoadMoreMessage | OpenResultMessage | ReadyMessage;
 
 export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
     public static readonly viewType = 'csharpSearch.mainView';
@@ -39,13 +49,18 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
     private readonly configWatcher: vscode.Disposable;
     private readonly indexStatusSubscription: vscode.Disposable;
     private currentWebview: vscode.Webview | undefined;
+    private cachedSearchResults: { requestId: string; items: SerializableSearchResultItem[] } | undefined;
 
     public constructor(context: vscode.ExtensionContext, searchService: SymbolSearchService) {
         this.context = context;
         this.searchService = searchService;
         this.contentBuilder = new WebviewContentBuilder(context);
+        this.cachedSearchResults = undefined;
         this.configWatcher = vscode.workspace.onDidChangeConfiguration((event) => {
-            if (!event.affectsConfiguration(`${CONFIG_SECTION}.${SEARCH_DEBOUNCE_MS_KEY}`)) {
+            if (
+                !event.affectsConfiguration(`${CONFIG_SECTION}.${SEARCH_DEBOUNCE_MS_KEY}`)
+                && !event.affectsConfiguration(`${CONFIG_SECTION}.${PAGE_SIZE_KEY}`)
+            ) {
                 return;
             }
 
@@ -87,6 +102,11 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
                 return;
             }
 
+            if (message.type === 'loadMore') {
+                this.handleLoadMore(message, webviewView.webview);
+                return;
+            }
+
             if (message.type === 'openResult') {
                 await this.handleOpenResult(message);
             }
@@ -104,7 +124,8 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
 
         this.currentWebview.postMessage({
             type: 'configUpdated',
-            searchDebounceMs: this.getSearchDebounceMs()
+            searchDebounceMs: this.getSearchDebounceMs(),
+            pageSize: this.getPageSize()
         });
     }
 
@@ -127,6 +148,7 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
             activeKindId: kinds[0]?.id ?? '',
             texts: lang.getWebViewTexts(),
             searchDebounceMs: this.getSearchDebounceMs(),
+            pageSize: this.getPageSize(),
             indexStatus: this.searchService.getIndexStatus()
         });
     }
@@ -142,16 +164,58 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
         return Math.min(MAX_SEARCH_DEBOUNCE_MS, Math.max(MIN_SEARCH_DEBOUNCE_MS, Math.round(configuredValue)));
     }
 
+    private getPageSize(): number {
+        const configuration = vscode.workspace.getConfiguration(CONFIG_SECTION);
+        const configuredValue = configuration.get<number>(PAGE_SIZE_KEY, DEFAULT_PAGE_SIZE);
+
+        if (typeof configuredValue !== 'number' || Number.isNaN(configuredValue)) {
+            return DEFAULT_PAGE_SIZE;
+        }
+
+        return Math.min(MAX_PAGE_SIZE, Math.max(MIN_PAGE_SIZE, Math.round(configuredValue)));
+    }
+
     private async handleSearch(message: SearchMessage, webview: vscode.Webview): Promise<void> {
         const matchMode: SearchMatchMode = message.matchMode === 'exact' ? 'exact' : 'fuzzy';
         const results = await this.searchService.search(message.kindId, message.query, matchMode);
         const serializableResults: SerializableSearchResultItem[] = this.searchService.toSerializable(results);
+        const pageSize = this.getPageSize();
+        const pageItems = serializableResults.slice(0, pageSize);
+        this.cachedSearchResults = {
+            requestId: message.requestId,
+            items: serializableResults
+        };
 
         webview.postMessage({
             type: 'searchResults',
             requestId: message.requestId,
             kindId: message.kindId,
-            items: serializableResults
+            items: pageItems,
+            total: serializableResults.length,
+            hasMore: serializableResults.length > pageItems.length,
+            append: false
+        });
+    }
+
+    private handleLoadMore(message: LoadMoreMessage, webview: vscode.Webview): void {
+        const cached = this.cachedSearchResults;
+        if (!cached || cached.requestId !== message.requestId) {
+            return;
+        }
+
+        const pageSize = this.getPageSize();
+        const parsedOffset = Number.isFinite(message.offset) ? Math.round(message.offset) : 0;
+        const offset = Math.max(0, parsedOffset);
+        const pageItems = cached.items.slice(offset, offset + pageSize);
+        const loadedCount = offset + pageItems.length;
+
+        webview.postMessage({
+            type: 'searchResults',
+            requestId: message.requestId,
+            items: pageItems,
+            total: cached.items.length,
+            hasMore: loadedCount < cached.items.length,
+            append: true
         });
     }
 

@@ -4,6 +4,19 @@
 
 ## English
 
+### [1.0.5] - 2026-02-17
+
+#### Added
+
+- Added paginated result loading with infinite scroll in the search view.
+- Added configurable page size setting: `csharpSearch.pageSize` (default `100`, range `20-500`).
+
+#### Changed
+
+- Search result meta now shows progressive loaded count while more pages exist (for example, `120/500 results loaded`).
+- Search header area is now sticky, keeping tabs/input/match mode/result count visible while scrolling.
+- Updated clear-input icon style in the search box.
+
 ### [1.0.4] - 2026-02-17
 
 #### Added
@@ -57,6 +70,19 @@
 - Click-to-open search results with line navigation.
 
 ## 中文
+
+### [1.0.5] - 2026-02-17
+
+#### 新增
+
+- 搜索结果支持滚动分页加载（无限滚动）。
+- 新增分页条数配置：`csharpSearch.pageSize`（默认 `100`，范围 `20-500`）。
+
+#### 变更
+
+- 在有后续分页时，结果状态显示“已加载/总数”（例如 `已加载 120/500 条结果`）。
+- 搜索头部区域改为置顶，滚动时仍可看到标签、输入框、匹配模式和结果数量。
+- 输入框清空图标样式更新。
 
 ### [1.0.4] - 2026-02-17
 

@@ -32,10 +32,11 @@ const TEXT_MAP = {
         'webview.match.exact': '精确匹配',
         'webview.meta.searching': '搜索中...',
         'webview.meta.indexing': '正在建立索引，请稍候...',
-        'webview.meta.indexingProgress': '正在建立索引 ({0}/{1})',
+        'webview.meta.indexingProgress': '正在建立索引 ({0}/{1})，完成后将自动搜索',
         'webview.meta.indexReady': '索引已完成',
         'webview.meta.noResults': '未找到结果',
-        'webview.meta.resultCount': '共 {0} 条结果'
+        'webview.meta.resultCount': '共 {0} 条结果',
+        'webview.meta.resultCountProgress': '已加载 {0}/{1} 条结果'
     },
     'en': {
         'search.kind.type': 'Type',
@@ -55,10 +56,11 @@ const TEXT_MAP = {
         'webview.match.exact': 'Exact',
         'webview.meta.searching': 'Searching...',
         'webview.meta.indexing': 'Building index, please wait...',
-        'webview.meta.indexingProgress': 'Building index ({0}/{1})',
+        'webview.meta.indexingProgress': 'Building index ({0}/{1}), search will run automatically',
         'webview.meta.indexReady': 'Index is ready',
         'webview.meta.noResults': 'No results found',
-        'webview.meta.resultCount': '{0} results'
+        'webview.meta.resultCount': '{0} results',
+        'webview.meta.resultCountProgress': '{0}/{1} results loaded'
     }
 };
 

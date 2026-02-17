@@ -39,6 +39,7 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 - Excludes `bin`, `obj`, `.git`, `.github`, `.vscode` by default.
 - Updates cache incrementally on create/change/delete events.
 - Supports `Fuzzy` / `Exact` mode switching, with case-insensitive matching, and returns up to the configured `csharpSearch.maxResults` (default `500`).
+- Search results are loaded by pages while scrolling; each page size is controlled by `csharpSearch.pageSize` (default `100`).
 - In `Impl`, search supports implementation type names and interface/base type names.
 - Input placeholder text updates by active tab to indicate expected query intent.
 
@@ -51,7 +52,8 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
   - `Method` / `Member` / `Impl`: `project / owner type` (for example, `MyApp / OrderService`).
 - **Detail**: code preview snippet for quick identification.
 - Clicking any result opens the source file and jumps to the exact line.
-- A single query returns up to `csharpSearch.maxResults` items (default `500`); if more matches exist, only the first N are shown.
+- Result meta shows loaded count and total count while more pages are available.
+- A single query returns up to `csharpSearch.maxResults` items (default `500`); if more matches exist, only the first N are kept.
 
 ### Configuration
 
@@ -67,6 +69,13 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 - Default: `300`
 - Range: `0-1000`
 - Description: Debounce delay (ms) before sending search request while typing.
+
+#### `csharpSearch.pageSize`
+
+- Type: `number`
+- Default: `100`
+- Range: `20-500`
+- Description: Number of results loaded per page while scrolling.
 
 #### `csharpSearch.maxResults`
 
@@ -139,6 +148,7 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 - 默认排除 `bin`、`obj`、`.git`、`.github`、`.vscode`。
 - 文件新增/修改/删除后增量刷新缓存。
 - 支持“模糊匹配 / 精确匹配”切换，匹配大小写不敏感，单次最多返回 `csharpSearch.maxResults` 配置的条数（默认 `500`）。
+- 搜索结果支持滚动分页加载，每页条数由 `csharpSearch.pageSize` 控制（默认 `100`）。
 - 在“实现”标签下，可按实现类名、接口名或基类名检索。
 - 输入框提示会根据当前标签动态切换，降低误搜成本。
 
@@ -151,7 +161,8 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
   - `方法` / `成员` / `实现`：`项目名 / 所属类型`（例如 `MyApp / OrderService`）。
 - **详情**：代码预览片段，用于快速识别。
 - 点击任意结果会打开源文件并跳转到对应行。
-- 单次查询最多返回 `csharpSearch.maxResults` 配置的条数（默认 `500`）；若实际命中更多，界面仅展示前 N 条。
+- 结果区在存在更多分页时会显示“已加载/总数”。
+- 单次查询最多返回 `csharpSearch.maxResults` 配置的条数（默认 `500`）；若实际命中更多，仅保留前 N 条。
 
 ### 配置项
 
@@ -167,6 +178,13 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 - 默认：`300`
 - 范围：`0-1000`
 - 说明：输入时发送搜索请求前的防抖延迟（毫秒）。
+
+#### `csharpSearch.pageSize`
+
+- 类型：`number`
+- 默认：`100`
+- 范围：`20-500`
+- 说明：结果列表滚动加载时每页返回条数。
 
 #### `csharpSearch.maxResults`
 

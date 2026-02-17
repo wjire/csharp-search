@@ -6,8 +6,13 @@ const state = {
     matchMode: 'fuzzy',
     requestId: 0,
     searchDebounceMs: 300,
+    pageSize: 100,
     kinds: [],
     texts: {},
+    totalResults: 0,
+    loadedResults: 0,
+    hasMore: false,
+    isLoadingMore: false,
     indexStatus: {
         isReady: false,
         isIndexing: true,
@@ -18,7 +23,10 @@ const state = {
 
 const MIN_SEARCH_DEBOUNCE_MS = 0;
 const MAX_SEARCH_DEBOUNCE_MS = 1000;
+const MIN_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 500;
 const INDEX_READY_HINT_MS = 1500;
+const LOAD_MORE_BOTTOM_GAP_PX = 120;
 
 let searchDebounceTimer = undefined;
 let indexReadyHintTimer = undefined;
@@ -48,6 +56,13 @@ function formatText(template, ...args) {
         text = text.replace(`{${index}}`, String(arg));
     });
     return text;
+}
+
+function resetPagingState() {
+    state.totalResults = 0;
+    state.loadedResults = 0;
+    state.hasMore = false;
+    state.isLoadingMore = false;
 }
 
 function renderTabs() {
@@ -165,6 +180,7 @@ function triggerSearch() {
 
     if (!state.activeKindId || !state.query) {
         resultListEl.innerHTML = '';
+        resetPagingState();
         resultMetaEl.textContent = '';
         return;
     }
@@ -175,6 +191,7 @@ function triggerSearch() {
     }
 
     const currentRequestId = String(++state.requestId);
+    resetPagingState();
 
     resultMetaEl.textContent = getText('meta.searching', 'Searching...');
     vscode.postMessage({
@@ -212,6 +229,15 @@ function normalizeSearchDebounceMs(value) {
     return Math.min(MAX_SEARCH_DEBOUNCE_MS, Math.max(MIN_SEARCH_DEBOUNCE_MS, rounded));
 }
 
+function normalizePageSize(value) {
+    if (typeof value !== 'number' || Number.isNaN(value)) {
+        return 100;
+    }
+
+    const rounded = Math.round(value);
+    return Math.min(MAX_PAGE_SIZE, Math.max(MIN_PAGE_SIZE, rounded));
+}
+
 function updateClearButtonVisibility() {
     if (!searchBoxEl) {
         return;
@@ -221,52 +247,102 @@ function updateClearButtonVisibility() {
     searchBoxEl.classList.toggle('has-value', hasValue);
 }
 
-function renderResults(items) {
-    resultListEl.innerHTML = '';
+function createResultElement(item) {
+    const li = document.createElement('li');
+    li.className = 'result-item';
+    if (item.kindId === 'type' || item.kindId === 'method' || item.kindId === 'member' || item.kindId === 'impl') {
+        li.classList.add(`result-item--${item.kindId}`);
+    }
 
-    if (!items.length) {
+    const name = document.createElement('div');
+    name.className = 'result-name';
+    applyHighlightedText(name, item.symbolName, state.query);
+
+    const meta = document.createElement('div');
+    meta.className = 'result-meta-line';
+    if (item.kindId === 'impl') {
+        meta.classList.add('result-meta-line--impl');
+    }
+    applyHighlightedText(meta, buildMetaText(item), state.query);
+
+    const detail = document.createElement('div');
+    detail.className = 'result-detail-line';
+    applyHighlightedText(detail, buildDetailText(item), state.query);
+
+    li.appendChild(name);
+    li.appendChild(meta);
+    li.appendChild(detail);
+
+    li.addEventListener('click', () => {
+        vscode.postMessage({
+            type: 'openResult',
+            uri: item.uri,
+            line: item.line
+        });
+    });
+
+    return li;
+}
+
+function updateResultMeta() {
+    if (state.loadedResults <= 0) {
         resultMetaEl.textContent = getText('meta.noResults', 'No results found');
         return;
     }
 
-    resultMetaEl.textContent = formatText(getText('meta.resultCount', '{0} results'), items.length);
+    if (state.totalResults > state.loadedResults) {
+        resultMetaEl.textContent = formatText(
+            getText('meta.resultCountProgress', '{0}/{1} results'),
+            state.loadedResults,
+            state.totalResults
+        );
+        return;
+    }
+
+    resultMetaEl.textContent = formatText(getText('meta.resultCount', '{0} results'), state.loadedResults);
+}
+
+function renderResults(items, append = false) {
+    if (!append) {
+        resultListEl.innerHTML = '';
+    }
+
+    if (!items.length) {
+        if (!append) {
+            resultMetaEl.textContent = getText('meta.noResults', 'No results found');
+        }
+        return;
+    }
 
     items.forEach((item) => {
-        const li = document.createElement('li');
-        li.className = 'result-item';
-        if (item.kindId === 'type' || item.kindId === 'method' || item.kindId === 'member' || item.kindId === 'impl') {
-            li.classList.add(`result-item--${item.kindId}`);
-        }
-
-        const name = document.createElement('div');
-        name.className = 'result-name';
-        applyHighlightedText(name, item.symbolName, state.query);
-
-        const meta = document.createElement('div');
-        meta.className = 'result-meta-line';
-        if (item.kindId === 'impl') {
-            meta.classList.add('result-meta-line--impl');
-        }
-        applyHighlightedText(meta, buildMetaText(item), state.query);
-
-        const detail = document.createElement('div');
-        detail.className = 'result-detail-line';
-        applyHighlightedText(detail, buildDetailText(item), state.query);
-
-        li.appendChild(name);
-        li.appendChild(meta);
-        li.appendChild(detail);
-
-        li.addEventListener('click', () => {
-            vscode.postMessage({
-                type: 'openResult',
-                uri: item.uri,
-                line: item.line
-            });
-        });
-
-        resultListEl.appendChild(li);
+        resultListEl.appendChild(createResultElement(item));
     });
+}
+
+function requestLoadMore() {
+    if (state.isLoadingMore || !state.hasMore || !state.query || !state.activeKindId || !state.indexStatus.isReady) {
+        return;
+    }
+
+    state.isLoadingMore = true;
+    vscode.postMessage({
+        type: 'loadMore',
+        requestId: String(state.requestId),
+        offset: state.loadedResults
+    });
+}
+
+function tryLoadMoreIfNeeded() {
+    if (!state.hasMore || state.isLoadingMore) {
+        return;
+    }
+
+    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const fullHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 0;
+    if (scrollY + viewportHeight >= fullHeight - LOAD_MORE_BOTTOM_GAP_PX) {
+        requestLoadMore();
+    }
 }
 
 function applyHighlightedText(targetEl, text, query) {
@@ -384,6 +460,10 @@ matchModeGroupEl?.addEventListener('click', (event) => {
     triggerSearch();
 });
 
+window.addEventListener('scroll', () => {
+    tryLoadMoreIfNeeded();
+});
+
 window.addEventListener('message', (event) => {
     const message = event.data;
 
@@ -392,6 +472,7 @@ window.addEventListener('message', (event) => {
         state.activeKindId = message.activeKindId || state.kinds[0]?.id || '';
         state.texts = message.texts && typeof message.texts === 'object' ? message.texts : {};
         state.searchDebounceMs = normalizeSearchDebounceMs(message.searchDebounceMs);
+        state.pageSize = normalizePageSize(message.pageSize);
         state.indexStatus = normalizeIndexStatus(message.indexStatus);
         updateInputPlaceholder();
         const clearInputText = getText('input.clear', 'Clear input');
@@ -421,12 +502,36 @@ window.addEventListener('message', (event) => {
             return;
         }
 
-        renderResults(Array.isArray(message.items) ? message.items : []);
+        const append = message.append === true;
+        const items = Array.isArray(message.items) ? message.items : [];
+        state.totalResults = Number.isFinite(message.total) ? Math.max(0, Math.round(message.total)) : items.length;
+
+        if (!append) {
+            state.loadedResults = items.length;
+            state.hasMore = message.hasMore === true;
+            state.isLoadingMore = false;
+            renderResults(items, false);
+            updateResultMeta();
+            setTimeout(() => {
+                tryLoadMoreIfNeeded();
+            }, 0);
+            return;
+        }
+
+        state.loadedResults += items.length;
+        state.hasMore = message.hasMore === true;
+        state.isLoadingMore = false;
+        renderResults(items, true);
+        updateResultMeta();
+        setTimeout(() => {
+            tryLoadMoreIfNeeded();
+        }, 0);
         return;
     }
 
     if (message.type === 'configUpdated') {
         state.searchDebounceMs = normalizeSearchDebounceMs(message.searchDebounceMs);
+        state.pageSize = normalizePageSize(message.pageSize);
         return;
     }
 

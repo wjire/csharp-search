@@ -15,6 +15,17 @@ body {
     padding: 5px;
 }
 
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--vscode-sideBar-background);
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--vscode-editorWidget-border);
+    box-shadow: 0 1px 0 0 color-mix(in srgb, var(--vscode-editorWidget-border) 60%, transparent);
+}
+
 .tabs {
     display: flex;
     border: 1px solid var(--vscode-input-border);
@@ -64,8 +75,8 @@ body {
     right: 6px;
     top: 50%;
     transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
     border: 1px solid transparent;
     border-radius: 999px;
     cursor: pointer;
@@ -84,10 +95,10 @@ body {
 }
 
 .clear-query-btn svg {
-    width: 10px;
-    height: 10px;
+    width: 13px;
+    height: 13px;
     stroke: currentColor;
-    stroke-width: 1.8;
+    stroke-width: 2.2;
     stroke-linecap: round;
     fill: none;
 }

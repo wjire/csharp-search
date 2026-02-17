@@ -2,7 +2,7 @@
     "name": "csharp-search",
     "displayName": "%extension.displayName%",
     "description": "%extension.description%",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "publisher": "dankit",
     "icon": "media/images/icon.png",
     "repository": {
@@ -94,6 +94,14 @@
                     "maximum": 1000,
                     "scope": "resource",
                     "markdownDescription": "%config.searchDebounceMs.markdownDescription%"
+                },
+                "csharpSearch.pageSize": {
+                    "type": "number",
+                    "default": 100,
+                    "minimum": 20,
+                    "maximum": 500,
+                    "scope": "resource",
+                    "markdownDescription": "%config.pageSize.markdownDescription%"
                 },
                 "csharpSearch.maxResults": {
                     "type": "number",

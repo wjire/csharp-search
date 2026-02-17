@@ -10,6 +10,7 @@
 
 - Added indexing status/progress in the search view, visible immediately after opening the panel.
 - Added a short `Index is ready` hint after initial indexing completes.
+- Added configurable result limit setting: `csharpSearch.maxResults` (default `500`, range `50-1000`).
 
 #### Changed
 
@@ -63,6 +64,7 @@
 
 - 搜索面板打开后即可看到索引状态/进度，无需先输入关键字。
 - 首次索引完成后新增短暂“索引已完成”提示。
+- 新增可配置结果上限：`csharpSearch.maxResults`（默认 `500`，范围 `50-1000`）。
 
 #### 变更
 

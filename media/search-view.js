@@ -47,6 +47,7 @@ const viewModeToggleBtnEl = document.getElementById('viewModeToggleBtn');
 const viewModeToggleIconEl = document.getElementById('viewModeToggleIcon');
 const toggleExpandBtnEl = document.getElementById('toggleExpandBtn');
 const toggleExpandIconEl = document.getElementById('toggleExpandIcon');
+const resultsScrollEl = document.getElementById('resultsScroll');
 const resultListEl = document.getElementById('resultList');
 const resultMetaEl = document.getElementById('resultMeta');
 
@@ -683,6 +684,20 @@ function createFileElement(fileNode) {
 }
 
 function updateResultMeta() {
+    if (state.isPreparingGlobalToggle) {
+        const total = Math.max(state.totalResults, state.loadedResults);
+        if (total > 0) {
+            resultMetaEl.textContent = formatText(
+                getText('meta.loadingAllProgress', 'Loading all results ({0}/{1})...'),
+                state.loadedResults,
+                total
+            );
+        } else {
+            resultMetaEl.textContent = getText('view.loadingAll', 'Loading all results...');
+        }
+        return;
+    }
+
     if (state.loadedResults <= 0) {
         resultMetaEl.textContent = getText('meta.noResults', 'No results found');
         return;
@@ -866,9 +881,14 @@ function tryLoadMoreIfNeeded() {
         return;
     }
 
-    const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-    const fullHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 0;
+    const scrollContainer = resultsScrollEl;
+    if (!scrollContainer) {
+        return;
+    }
+
+    const scrollY = scrollContainer.scrollTop;
+    const viewportHeight = scrollContainer.clientHeight;
+    const fullHeight = scrollContainer.scrollHeight;
     if (scrollY + viewportHeight >= fullHeight - LOAD_MORE_BOTTOM_GAP_PX) {
         requestLoadMore();
     }
@@ -914,36 +934,8 @@ function escapeRegExp(value) {
     return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function buildMetaText(item) {
-    if (item.kindId === 'type') {
-        return item.projectName || extractWorkspaceName(item.relativePath);
-    }
-
-    if (item.kindId === 'method' || item.kindId === 'member' || item.kindId === 'impl') {
-        const project = item.projectName || extractWorkspaceName(item.relativePath);
-        const ownerType = (item.ownerTypeName || '').trim();
-        return ownerType ? `${project} / ${ownerType}` : project;
-    }
-
-    return `${item.relativePath}:${item.line + 1}`;
-}
-
 function buildDetailText(item) {
     return item.preview;
-}
-
-function extractWorkspaceName(relativePath) {
-    if (typeof relativePath !== 'string') {
-        return '';
-    }
-
-    const normalized = relativePath.replace(/\\/g, '/').trim();
-    if (!normalized) {
-        return '';
-    }
-
-    const segments = normalized.split('/');
-    return segments[0] || '';
 }
 
 queryInputEl.addEventListener('input', () => {
@@ -1004,6 +996,7 @@ toggleExpandBtnEl?.addEventListener('click', () => {
         state.isPreparingGlobalToggle = true;
         state.pendingGlobalExpandState = targetExpanded;
         updateExpandToggleButton();
+        updateResultMeta();
         requestLoadMore();
         return;
     }
@@ -1012,7 +1005,7 @@ toggleExpandBtnEl?.addEventListener('click', () => {
     renderResults();
 });
 
-window.addEventListener('scroll', () => {
+resultsScrollEl?.addEventListener('scroll', () => {
     tryLoadMoreIfNeeded();
 });
 

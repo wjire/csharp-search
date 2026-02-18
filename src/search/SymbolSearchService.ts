@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ISymbolSearcher } from './ISymbolSearcher';
 import { SymbolIndexCache } from './SymbolIndexCache';
-import { IndexStatus, SearchKindDefinition, SearchMatchMode, SearchResultItem, SerializableSearchResultItem } from './types';
+import { IndexStatus, SearchKindDefinition, SearchMatchMode, SearchQueryResult, SearchResultItem, SerializableSearchResultItem } from './types';
 
 export class SymbolSearchService implements vscode.Disposable {
     private readonly searchersByKindId: Map<string, ISymbolSearcher>;
@@ -32,9 +32,13 @@ export class SymbolSearchService implements vscode.Disposable {
         return Array.from(this.searchersByKindId.values()).map((searcher) => searcher.kind);
     }
 
-    public async search(kindId: string, query: string, matchMode: SearchMatchMode = 'fuzzy'): Promise<SearchResultItem[]> {
+    public async search(kindId: string, query: string, matchMode: SearchMatchMode = 'fuzzy'): Promise<SearchQueryResult> {
         if (!this.searchersByKindId.has(kindId)) {
-            return [];
+            return {
+                items: [],
+                isTruncated: false,
+                maxResults: 0
+            };
         }
 
         return this.symbolIndexCache.search(kindId, query, matchMode);

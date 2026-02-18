@@ -14,6 +14,8 @@ const state = {
     expandedNodeState: {},
     totalResults: 0,
     loadedResults: 0,
+    isTruncated: false,
+    maxResults: 0,
     hasMore: false,
     isLoadingMore: false,
     isPreparingGlobalToggle: false,
@@ -77,6 +79,8 @@ function resetPagingState() {
     state.displayedItems = [];
     state.totalResults = 0;
     state.loadedResults = 0;
+    state.isTruncated = false;
+    state.maxResults = 0;
     state.hasMore = false;
     state.isLoadingMore = false;
     state.isPreparingGlobalToggle = false;
@@ -704,10 +708,30 @@ function updateResultMeta() {
     }
 
     if (state.totalResults > state.loadedResults) {
+        if (state.isTruncated) {
+            const limit = state.maxResults > 0 ? state.maxResults : state.totalResults;
+            resultMetaEl.textContent = formatText(
+                getText('meta.resultCountProgressLimited', '{0}/{1} results loaded (limit {2} reached)'),
+                state.loadedResults,
+                state.totalResults,
+                limit
+            );
+            return;
+        }
+
         resultMetaEl.textContent = formatText(
             getText('meta.resultCountProgress', '{0}/{1} results'),
             state.loadedResults,
             state.totalResults
+        );
+        return;
+    }
+
+    if (state.isTruncated) {
+        const limit = state.maxResults > 0 ? state.maxResults : state.totalResults;
+        resultMetaEl.textContent = formatText(
+            getText('meta.resultCountLimited', 'Reached result limit ({0})'),
+            limit
         );
         return;
     }
@@ -1058,6 +1082,8 @@ window.addEventListener('message', (event) => {
             state.expandedNodeState = {};
             state.displayedItems = items;
             state.loadedResults = items.length;
+            state.isTruncated = message.isTruncated === true;
+            state.maxResults = Number.isFinite(message.maxResults) ? Math.max(0, Math.round(message.maxResults)) : 0;
             state.hasMore = message.hasMore === true;
             state.isLoadingMore = false;
             renderResults();
@@ -1071,6 +1097,8 @@ window.addEventListener('message', (event) => {
 
         state.displayedItems = state.displayedItems.concat(items);
         state.loadedResults += items.length;
+        state.isTruncated = message.isTruncated === true;
+        state.maxResults = Number.isFinite(message.maxResults) ? Math.max(0, Math.round(message.maxResults)) : state.maxResults;
         state.hasMore = message.hasMore === true;
         state.isLoadingMore = false;
         renderResults();

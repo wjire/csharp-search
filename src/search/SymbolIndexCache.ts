@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { ISymbolSearcher } from './ISymbolSearcher';
-import { IndexStatus, SearchMatchMode, SearchResultItem } from './types';
+import { IndexStatus, SearchMatchMode, SearchQueryResult, SearchResultItem } from './types';
 
 const textDecoder = new TextDecoder('utf-8');
 const INITIAL_INDEX_BATCH_SIZE = 20;
@@ -94,17 +94,25 @@ export class SymbolIndexCache implements vscode.Disposable {
         await this.updateQueue;
     }
 
-    public async search(kindId: string, query: string, matchMode: SearchMatchMode = 'fuzzy'): Promise<SearchResultItem[]> {
+    public async search(kindId: string, query: string, matchMode: SearchMatchMode = 'fuzzy'): Promise<SearchQueryResult> {
         await this.ensureReady();
 
         const symbolsByFile = this.symbolsByKindAndFile.get(kindId);
         if (!symbolsByFile) {
-            return [];
+            return {
+                items: [],
+                isTruncated: false,
+                maxResults: this.getMaxResults()
+            };
         }
 
         const normalizedQuery = query.trim().toLowerCase();
         if (normalizedQuery.length === 0) {
-            return [];
+            return {
+                items: [],
+                isTruncated: false,
+                maxResults: this.getMaxResults()
+            };
         }
         const maxResults = this.getMaxResults();
 
@@ -123,12 +131,20 @@ export class SymbolIndexCache implements vscode.Disposable {
 
                 matched.push(symbol);
                 if (matched.length >= maxResults) {
-                    return matched;
+                    return {
+                        items: matched,
+                        isTruncated: true,
+                        maxResults
+                    };
                 }
             }
         }
 
-        return matched;
+        return {
+            items: matched,
+            isTruncated: false,
+            maxResults
+        };
     }
 
     private isExactMatched(symbolNameLower: string, searchTextLower: string, queryLower: string): boolean {

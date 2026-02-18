@@ -2,7 +2,7 @@
     "name": "csharp-search",
     "displayName": "%extension.displayName%",
     "description": "%extension.description%",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "publisher": "dankit",
     "icon": "media/images/icon.png",
     "repository": {

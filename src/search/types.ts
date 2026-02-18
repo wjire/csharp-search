@@ -30,6 +30,12 @@ export interface SerializableSearchResultItem {
     ownerTypeName?: string;
 }
 
+export interface SearchQueryResult {
+    items: SearchResultItem[];
+    isTruncated: boolean;
+    maxResults: number;
+}
+
 export interface IndexStatus {
     isReady: boolean;
     isIndexing: boolean;

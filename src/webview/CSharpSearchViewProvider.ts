@@ -49,7 +49,12 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
     private readonly configWatcher: vscode.Disposable;
     private readonly indexStatusSubscription: vscode.Disposable;
     private currentWebview: vscode.Webview | undefined;
-    private cachedSearchResults: { requestId: string; items: SerializableSearchResultItem[] } | undefined;
+    private cachedSearchResults: {
+        requestId: string;
+        items: SerializableSearchResultItem[];
+        isTruncated: boolean;
+        maxResults: number;
+    } | undefined;
 
     public constructor(context: vscode.ExtensionContext, searchService: SymbolSearchService) {
         this.context = context;
@@ -178,13 +183,15 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
 
     private async handleSearch(message: SearchMessage, webview: vscode.Webview): Promise<void> {
         const matchMode: SearchMatchMode = message.matchMode === 'exact' ? 'exact' : 'fuzzy';
-        const results = await this.searchService.search(message.kindId, message.query, matchMode);
-        const serializableResults: SerializableSearchResultItem[] = this.searchService.toSerializable(results);
+        const searchResult = await this.searchService.search(message.kindId, message.query, matchMode);
+        const serializableResults: SerializableSearchResultItem[] = this.searchService.toSerializable(searchResult.items);
         const pageSize = this.getPageSize();
         const pageItems = serializableResults.slice(0, pageSize);
         this.cachedSearchResults = {
             requestId: message.requestId,
-            items: serializableResults
+            items: serializableResults,
+            isTruncated: searchResult.isTruncated,
+            maxResults: searchResult.maxResults
         };
 
         webview.postMessage({
@@ -194,6 +201,8 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
             items: pageItems,
             total: serializableResults.length,
             hasMore: serializableResults.length > pageItems.length,
+            isTruncated: searchResult.isTruncated,
+            maxResults: searchResult.maxResults,
             append: false
         });
     }
@@ -216,6 +225,8 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
             items: pageItems,
             total: cached.items.length,
             hasMore: loadedCount < cached.items.length,
+            isTruncated: cached.isTruncated,
+            maxResults: cached.maxResults,
             append: true
         });
     }

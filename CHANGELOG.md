@@ -4,6 +4,21 @@
 
 ## English
 
+### [1.0.9] - 2026-02-18
+
+#### Changed
+
+- Added workspace type guard for indexing startup: non-.NET workspaces now show an unsupported hint and do not start indexing.
+- Search service/index initialization is now lazy and starts only when a .NET workspace is detected after opening the view.
+
+### [1.0.8] - 2026-02-18
+
+#### Changed
+
+- Improved search-response metadata to explicitly indicate when query results hit the configured `maxResults` limit.
+- Updated result meta text to show capped-result status (for example, `Reached result limit (500)`) to avoid confusion with full-result paging.
+- Added incremental search for prefix expansion: fast filtering from previous results, with background full-index correction when previous results are capped by `maxResults`.
+
 ### [1.0.7] - 2026-02-17
 
 #### Changed
@@ -88,6 +103,21 @@
 - Click-to-open search results with line navigation.
 
 ## 中文
+
+### [1.0.9] - 2026-02-18
+
+#### 变更
+
+- 新增工作区类型守卫：非 .NET 工作区进入视图时仅提示“当前工作区不是 .NET 项目，未启动索引”，不触发索引构建。
+- 搜索服务与索引初始化改为懒加载：仅在进入视图且判定为 .NET 工作区后才启动。
+
+### [1.0.8] - 2026-02-18
+
+#### 变更
+
+- 改进搜索结果元数据：当命中 `maxResults` 上限时会明确标记。
+- 结果状态文案新增“已达结果上限（例如 `已达结果上限（500）`）”，避免与全量分页混淆。
+- 新增前缀扩展增量搜索：先基于上一轮结果快速筛选；若上一轮命中 `maxResults` 上限，再后台执行全索引校正。
 
 ### [1.0.7] - 2026-02-17
 

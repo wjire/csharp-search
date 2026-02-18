@@ -48,6 +48,7 @@ export class SymbolSearchService implements vscode.Disposable {
         return items.map((item) => ({
             kindId: item.kindId,
             symbolName: item.symbolName,
+            searchText: item.searchText,
             preview: item.preview,
             line: item.line,
             uri: item.uri.toString(),

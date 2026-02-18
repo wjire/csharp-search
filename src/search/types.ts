@@ -22,6 +22,7 @@ export interface SearchResultItem {
 export interface SerializableSearchResultItem {
     kindId: string;
     symbolName: string;
+    searchText?: string;
     preview: string;
     line: number;
     uri: string;

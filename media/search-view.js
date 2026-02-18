@@ -6,6 +6,11 @@ const state = {
     matchMode: 'fuzzy',
     viewMode: 'tree',
     requestId: 0,
+    lastCompletedRequestId: '',
+    lastCompletedQuery: '',
+    lastCompletedKindId: '',
+    lastCompletedMatchMode: 'fuzzy',
+    workspaceSupported: true,
     searchDebounceMs: 300,
     pageSize: 100,
     kinds: [],
@@ -202,6 +207,13 @@ function showIndexReadyHint() {
 function triggerSearch() {
     clearIndexReadyHintTimer();
 
+    if (!state.workspaceSupported) {
+        resultListEl.innerHTML = '';
+        resetPagingState();
+        resultMetaEl.textContent = getText('meta.unsupportedWorkspace', 'Current workspace is not a .NET project. Indexing is not started.');
+        return;
+    }
+
     state.query = queryInputEl.value.trim();
     updateClearButtonVisibility();
 
@@ -226,6 +238,8 @@ function triggerSearch() {
         kindId: state.activeKindId,
         query: state.query,
         matchMode: state.matchMode,
+        previousRequestId: state.lastCompletedRequestId,
+        previousQuery: state.lastCompletedQuery,
         requestId: currentRequestId
     });
 }
@@ -1037,6 +1051,7 @@ window.addEventListener('message', (event) => {
     const message = event.data;
 
     if (message.type === 'init') {
+        state.workspaceSupported = message.workspaceSupported !== false;
         state.kinds = Array.isArray(message.kinds) ? message.kinds : [];
         state.activeKindId = message.activeKindId || state.kinds[0]?.id || '';
         state.texts = message.texts && typeof message.texts === 'object' ? message.texts : {};
@@ -1062,6 +1077,10 @@ window.addEventListener('message', (event) => {
         updateExpandToggleButton();
         updateClearButtonVisibility();
         renderTabs();
+        if (!state.workspaceSupported) {
+            resultMetaEl.textContent = getText('meta.unsupportedWorkspace', 'Current workspace is not a .NET project. Indexing is not started.');
+            return;
+        }
         if (!state.indexStatus.isReady) {
             resultMetaEl.textContent = getIndexingMetaText();
         }
@@ -1086,6 +1105,10 @@ window.addEventListener('message', (event) => {
             state.maxResults = Number.isFinite(message.maxResults) ? Math.max(0, Math.round(message.maxResults)) : 0;
             state.hasMore = message.hasMore === true;
             state.isLoadingMore = false;
+            state.lastCompletedRequestId = String(message.requestId ?? '');
+            state.lastCompletedQuery = state.query;
+            state.lastCompletedKindId = state.activeKindId;
+            state.lastCompletedMatchMode = state.matchMode;
             renderResults();
             updateResultMeta();
             continuePendingGlobalToggleIfNeeded();
@@ -1117,6 +1140,10 @@ window.addEventListener('message', (event) => {
     }
 
     if (message.type === 'indexStatusUpdated') {
+        if (!state.workspaceSupported) {
+            return;
+        }
+
         const previousReady = state.indexStatus.isReady;
         state.indexStatus = normalizeIndexStatus(message.status);
 

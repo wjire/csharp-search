@@ -138,6 +138,11 @@ body {
     overflow: hidden;
 }
 
+.match-mode-group,
+.toolbar-icons {
+    --header-control-height: 26px;
+}
+
 .header-controls {
     display: flex;
     align-items: center;
@@ -149,7 +154,9 @@ body {
 .match-mode-btn {
     border: 0;
     cursor: pointer;
-    padding: 4px 10px;
+    height: var(--header-control-height);
+    padding: 0 10px;
+    line-height: 1;
     color: var(--vscode-foreground);
     background: var(--vscode-button-secondaryBackground);
 }
@@ -179,9 +186,10 @@ body {
 .toolbar-action-btn {
     border: 0;
     border-radius: 0;
-    padding: 4px 8px;
+    height: var(--header-control-height);
+    padding: 0 8px;
     min-width: 30px;
-    line-height: 1.4;
+    line-height: 1;
     cursor: pointer;
     color: var(--vscode-foreground);
     background: var(--vscode-button-secondaryBackground);

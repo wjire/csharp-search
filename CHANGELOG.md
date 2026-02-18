@@ -4,6 +4,12 @@
 
 ## English
 
+### [1.0.10] - 2026-02-18
+
+#### Changed
+
+- Fixed header toolbar button sizing: `Tree/List` and `Expand/Collapse` buttons now use the same control height as `Fuzzy/Exact` for consistent single-line alignment.
+
 ### [1.0.9] - 2026-02-18
 
 #### Changed
@@ -103,6 +109,12 @@
 - Click-to-open search results with line navigation.
 
 ## 中文
+
+### [1.0.10] - 2026-02-18
+
+#### 变更
+
+- 修复头部工具栏按钮尺寸：`树形/列表` 与 `展开/折叠` 按钮高度与 `模糊/精确` 统一，保持同一行视觉对齐一致。
 
 ### [1.0.9] - 2026-02-18
 

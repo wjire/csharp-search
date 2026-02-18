@@ -33,7 +33,8 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 
 - The extension activates when the `C# Search` panel is opened for the first time.
 - Triggering the focus command (`Ctrl+T` / `Cmd+T`) also opens the panel and activates the extension if it is not active yet.
-- After activation, it builds an in-memory index for workspace `*.cs` files.
+- Indexing starts only when the opened workspace is detected as a .NET project.
+- In non-.NET workspaces, the view shows an unsupported-workspace hint and does not start indexing.
 - During initial indexing, the search view shows indexing status/progress.
 - Excludes `bin`, `obj`, `.git`, `.github`, `.vscode` by default.
 - Updates cache incrementally on create/change/delete events.
@@ -123,7 +124,8 @@ A focused VS Code extension for searching `Type`, `Method`, `Member`, and `Impl`
 
 - 首次打开 `C# Search` 面板时激活扩展。
 - 触发聚焦命令（`Ctrl+T` / `Cmd+T`）也会打开该面板；若扩展尚未激活，将在此时激活。
-- 激活后开始构建工作区 `*.cs` 文件内存索引。
+- 仅当判定当前工作区为 .NET 项目时，才会启动索引构建。
+- 非 .NET 工作区会显示“当前工作区不是 .NET 项目，未启动索引”，且不会触发索引构建。
 - 首次索引期间，搜索视图会展示索引状态/进度。
 - 默认排除 `bin`、`obj`、`.git`、`.github`、`.vscode`。
 - 文件新增/修改/删除后增量刷新缓存。

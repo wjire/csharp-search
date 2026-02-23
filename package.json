@@ -2,7 +2,7 @@
     "name": "csharp-search",
     "displayName": "%extension.displayName%",
     "description": "%extension.description%",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "publisher": "dankit",
     "icon": "media/images/icon.png",
     "repository": {
@@ -119,12 +119,14 @@
         "lint": "eslint src --ext ts",
         "test": "node ./out/test/runTest.js"
     },
+    "dependencies": {
+        "@vscode/codicons": "^0.0.44"
+    },
     "devDependencies": {
         "@types/node": "20.x",
         "@types/vscode": "^1.85.0",
         "@typescript-eslint/eslint-plugin": "^6.15.0",
         "@typescript-eslint/parser": "^6.15.0",
-        "@vscode/codicons": "^0.0.44",
         "@vscode/test-electron": "^2.3.8",
         "eslint": "^8.56.0",
         "typescript": "^5.3.3"

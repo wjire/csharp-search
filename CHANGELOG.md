@@ -4,6 +4,12 @@
 
 ## English
 
+### [1.0.11] - 2026-02-23
+
+#### Fixed
+
+- Fixed missing toolbar/disclosure icons in installed builds by moving `@vscode/codicons` to runtime dependencies, ensuring Webview codicon assets are packaged in VSIX.
+
 ### [1.0.10] - 2026-02-18
 
 #### Changed
@@ -109,6 +115,12 @@
 - Click-to-open search results with line navigation.
 
 ## 中文
+
+### [1.0.11] - 2026-02-23
+
+#### 修复
+
+- 修复安装版图标不可见问题：将 `@vscode/codicons` 调整为运行时依赖，确保 Webview 的 codicon 资源会被打入 VSIX，从而恢复工具栏与折叠图标显示。
 
 ### [1.0.10] - 2026-02-18
 

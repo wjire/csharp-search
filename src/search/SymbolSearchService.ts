@@ -3,13 +3,23 @@ import { ISymbolSearcher } from './ISymbolSearcher';
 import { SymbolIndexCache } from './SymbolIndexCache';
 import { IndexStatus, SearchKindDefinition, SearchMatchMode, SearchQueryResult, SearchResultItem, SerializableSearchResultItem } from './types';
 
+interface SymbolSearchServiceOptions {
+    cacheFileUri?: vscode.Uri;
+    extensionVersion?: string;
+    workspaceKey?: string;
+}
+
 export class SymbolSearchService implements vscode.Disposable {
     private readonly searchersByKindId: Map<string, ISymbolSearcher>;
     private readonly symbolIndexCache: SymbolIndexCache;
 
-    public constructor(searchers: ISymbolSearcher[]) {
+    public constructor(searchers: ISymbolSearcher[], options?: SymbolSearchServiceOptions) {
         this.searchersByKindId = new Map(searchers.map((searcher) => [searcher.kind.id, searcher]));
-        this.symbolIndexCache = new SymbolIndexCache(searchers);
+        this.symbolIndexCache = new SymbolIndexCache(searchers, {
+            cacheFileUri: options?.cacheFileUri,
+            extensionVersion: options?.extensionVersion,
+            workspaceKey: options?.workspaceKey
+        });
     }
 
     public dispose(): void {

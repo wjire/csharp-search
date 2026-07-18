@@ -6,7 +6,7 @@ const FOCUS_VIEW_COMMAND = 'csharpSearch.focusView';
 export function activate(context: vscode.ExtensionContext): void {
     const viewProvider = new CSharpSearchViewProvider(context);
     const focusViewCommand = vscode.commands.registerCommand(FOCUS_VIEW_COMMAND, async () => {
-        await vscode.commands.executeCommand('workbench.view.extension.csharpSearch');
+        await viewProvider.showPanel();
     });
 
     context.subscriptions.push(

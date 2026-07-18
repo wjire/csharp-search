@@ -42,4 +42,5 @@ export interface IndexStatus {
     isIndexing: boolean;
     totalFiles: number;
     indexedFiles: number;
+    isFreshBuild?: boolean;
 }

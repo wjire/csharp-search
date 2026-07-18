@@ -1,12 +1,14 @@
 {
-  "extension.displayName": "C# Search",
-  "extension.description": "🔍 Search Type, Method, Member, and Impl C# symbols from a dedicated activity bar view.",
-  "viewContainer.title": "C# Search",
-  "view.main.name": "C# Search",
-  "command.focusView.title": "C# Search: Focus Search View",
-  "config.title": "C# Search",
-  "config.excludeFolders.markdownDescription": "Directories to exclude from C# symbol indexing. Match is by folder name and applies to any level in the workspace path.",
-  "config.searchDebounceMs.markdownDescription": "Search input debounce in milliseconds before dispatching query (0-1000). Default is 300.",
-  "config.pageSize.markdownDescription": "Number of items loaded per page while scrolling results (20-500). Default is 100.",
-  "config.maxResults.markdownDescription": "Maximum number of results returned per query (50-1000). Default is 500."
+    "extension.displayName": "C# Search",
+    "extension.description": "🔍 Search Type, Method, and Member C# symbols from a dedicated activity bar view.",
+    "viewContainer.title": "C# Search",
+    "view.main.name": "C# Search",
+    "command.focusView.title": "C# Search: Focus Search View",
+    "config.title": "C# Search",
+    "config.excludeFolders.markdownDescription": "Directories to exclude from C# symbol indexing. Match is by folder name and applies to any level in the workspace path.",
+    "config.searchDebounceMs.markdownDescription": "Search input debounce in milliseconds before dispatching query (0-1000). Default is 300.",
+    "config.updateDebounceMs.markdownDescription": "Debounce in milliseconds before applying batched file-change updates to in-memory index (0-5000). Default is 900.",
+    "config.persistDebounceMs.markdownDescription": "Debounce in milliseconds before persisting index snapshot to disk after index changes (0-10000). Default is 1200.",
+    "config.pageSize.markdownDescription": "Number of items loaded per page while scrolling results (20-500). Default is 100.",
+    "config.maxResults.markdownDescription": "Maximum number of results returned per query (50-1000). Default is 500."
 }

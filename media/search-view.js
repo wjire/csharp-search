@@ -4,7 +4,6 @@ const state = {
     activeKindId: '',
     query: '',
     matchMode: 'fuzzy',
-    viewMode: 'tree',
     requestId: 0,
     lastCompletedRequestId: '',
     lastCompletedQuery: '',
@@ -13,6 +12,11 @@ const state = {
     workspaceSupported: true,
     searchDebounceMs: 300,
     pageSize: 100,
+    resultTreeIcons: {
+        fileIconDataUri: '',
+        folderIconDataUri: '',
+        folderExpandedIconDataUri: ''
+    },
     kinds: [],
     texts: {},
     displayedItems: [],
@@ -25,6 +29,8 @@ const state = {
     isLoadingMore: false,
     isPreparingGlobalToggle: false,
     pendingGlobalExpandState: undefined,
+    selectedResultKey: '',
+    selectedItem: undefined,
     indexStatus: {
         isReady: false,
         isIndexing: true,
@@ -38,10 +44,13 @@ const MAX_SEARCH_DEBOUNCE_MS = 1000;
 const MIN_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 500;
 const INDEX_READY_HINT_MS = 1500;
+const INDEXING_SEARCH_REFRESH_MS = 180;
 const LOAD_MORE_BOTTOM_GAP_PX = 120;
 
 let searchDebounceTimer = undefined;
 let indexReadyHintTimer = undefined;
+let indexingSearchRefreshTimer = undefined;
+let lastIndexingSearchRefreshAt = 0;
 
 const tabsEl = document.getElementById('tabs');
 const searchBoxEl = document.querySelector('.search-box');
@@ -50,18 +59,12 @@ const clearQueryBtnEl = document.getElementById('clearQueryBtn');
 const matchModeGroupEl = document.getElementById('matchModeGroup');
 const fuzzyModeBtnEl = document.getElementById('fuzzyModeBtn');
 const exactModeBtnEl = document.getElementById('exactModeBtn');
-const viewModeToggleBtnEl = document.getElementById('viewModeToggleBtn');
-const viewModeToggleIconEl = document.getElementById('viewModeToggleIcon');
 const toggleExpandBtnEl = document.getElementById('toggleExpandBtn');
 const toggleExpandIconEl = document.getElementById('toggleExpandIcon');
 const resultsScrollEl = document.getElementById('resultsScroll');
 const resultListEl = document.getElementById('resultList');
 const resultMetaEl = document.getElementById('resultMeta');
-
-const persistedState = vscode.getState() || {};
-if (persistedState.viewMode === 'list') {
-    state.viewMode = 'list';
-}
+const resultsPaneTitleEl = document.getElementById('resultsPaneTitle');
 
 function getKindLabel(kind) {
     return kind?.label ?? '';
@@ -90,6 +93,8 @@ function resetPagingState() {
     state.isLoadingMore = false;
     state.isPreparingGlobalToggle = false;
     state.pendingGlobalExpandState = undefined;
+    state.selectedResultKey = '';
+    state.selectedItem = undefined;
 }
 
 function clearPendingGlobalToggle() {
@@ -134,10 +139,6 @@ function getPlaceholderByKind(kindId) {
         return getText('input.placeholder.member', getText('input.placeholder', 'Enter keyword'));
     }
 
-    if (kindId === 'impl') {
-        return getText('input.placeholder.impl', getText('input.placeholder', 'Enter keyword'));
-    }
-
     return getText('input.placeholder', 'Enter keyword');
 }
 
@@ -164,12 +165,61 @@ function normalizeIndexStatus(status) {
         isReady: status.isReady === true,
         isIndexing: status.isIndexing === true,
         totalFiles,
-        indexedFiles: totalFiles > 0 ? Math.min(indexedFiles, totalFiles) : indexedFiles
+        indexedFiles: totalFiles > 0 ? Math.min(indexedFiles, totalFiles) : indexedFiles,
+        isFreshBuild: status.isFreshBuild === true
     };
 }
 
+function normalizeResultTreeIcons(icons) {
+    if (!icons || typeof icons !== 'object') {
+        return {
+            fileIconDataUri: '',
+            folderIconDataUri: '',
+            folderExpandedIconDataUri: ''
+        };
+    }
+
+    return {
+        fileIconDataUri: typeof icons.fileIconDataUri === 'string' ? icons.fileIconDataUri : '',
+        folderIconDataUri: typeof icons.folderIconDataUri === 'string' ? icons.folderIconDataUri : '',
+        folderExpandedIconDataUri: typeof icons.folderExpandedIconDataUri === 'string' ? icons.folderExpandedIconDataUri : ''
+    };
+}
+
+function createTreeIconSpan(className) {
+    const icon = document.createElement('span');
+    icon.className = className;
+    return icon;
+}
+
+function createImageIcon(className, dataUri, fallbackText) {
+    const icon = createTreeIconSpan(className);
+    if (typeof dataUri === 'string' && dataUri.length > 0) {
+        icon.classList.add('result-tree-icon--image');
+        icon.style.backgroundImage = `url(${dataUri})`;
+        icon.setAttribute('aria-hidden', 'true');
+        return icon;
+    }
+
+    icon.textContent = fallbackText;
+    return icon;
+}
+
 function getIndexingMetaText() {
-    const { indexedFiles, totalFiles } = state.indexStatus;
+    const { indexedFiles, totalFiles, isFreshBuild } = state.indexStatus;
+
+    if (isFreshBuild) {
+        if (totalFiles > 0) {
+            return formatText(
+                getText('meta.firstIndexingProgress', 'This workspace is building its first index ({0}/{1}). First run may take longer, please wait...'),
+                indexedFiles,
+                totalFiles
+            );
+        }
+
+        return getText('meta.firstIndexing', 'This workspace is building its first index. It may take longer, please wait...');
+    }
+
     if (totalFiles > 0) {
         return formatText(
             getText('meta.indexingProgress', 'Building index ({0}/{1}), search will run automatically'),
@@ -190,6 +240,15 @@ function clearIndexReadyHintTimer() {
     indexReadyHintTimer = undefined;
 }
 
+function clearIndexingSearchRefreshTimer() {
+    if (!indexingSearchRefreshTimer) {
+        return;
+    }
+
+    clearTimeout(indexingSearchRefreshTimer);
+    indexingSearchRefreshTimer = undefined;
+}
+
 function showIndexReadyHint() {
     clearIndexReadyHintTimer();
 
@@ -204,13 +263,38 @@ function showIndexReadyHint() {
     }, INDEX_READY_HINT_MS);
 }
 
-function triggerSearch() {
+function scheduleIndexingSearchRefresh() {
+    if (!state.workspaceSupported || !state.activeKindId || queryInputEl.value.trim().length === 0) {
+        return;
+    }
+
+    const now = Date.now();
+    const elapsed = now - lastIndexingSearchRefreshAt;
+    if (elapsed >= INDEXING_SEARCH_REFRESH_MS) {
+        lastIndexingSearchRefreshAt = now;
+        triggerSearch({ preserveResults: true });
+        return;
+    }
+
+    if (indexingSearchRefreshTimer) {
+        return;
+    }
+
+    indexingSearchRefreshTimer = setTimeout(() => {
+        indexingSearchRefreshTimer = undefined;
+        lastIndexingSearchRefreshAt = Date.now();
+        triggerSearch({ preserveResults: true });
+    }, Math.max(16, INDEXING_SEARCH_REFRESH_MS - elapsed));
+}
+
+function triggerSearch(options = {}) {
+    const preserveResults = options.preserveResults === true;
+
     clearIndexReadyHintTimer();
+    clearIndexingSearchRefreshTimer();
 
     if (!state.workspaceSupported) {
-        resultListEl.innerHTML = '';
-        resetPagingState();
-        resultMetaEl.textContent = getText('meta.unsupportedWorkspace', 'Current workspace is not a .NET project. Indexing is not started.');
+        renderUnsupportedWorkspaceHint();
         return;
     }
 
@@ -224,15 +308,15 @@ function triggerSearch() {
         return;
     }
 
-    if (!state.indexStatus.isReady) {
-        resultMetaEl.textContent = getIndexingMetaText();
-        return;
+    const currentRequestId = String(++state.requestId);
+    if (!preserveResults) {
+        resetPagingState();
     }
 
-    const currentRequestId = String(++state.requestId);
-    resetPagingState();
-
-    resultMetaEl.textContent = getText('meta.searching', 'Searching...');
+    resultMetaEl.textContent = state.indexStatus.isReady
+        ? getText('meta.searching', 'Searching...')
+        : getIndexingMetaText();
+    lastIndexingSearchRefreshAt = Date.now();
     vscode.postMessage({
         type: 'search',
         kindId: state.activeKindId,
@@ -248,34 +332,6 @@ function setMatchMode(matchMode) {
     state.matchMode = matchMode === 'exact' ? 'exact' : 'fuzzy';
     fuzzyModeBtnEl?.classList.toggle('active', state.matchMode === 'fuzzy');
     exactModeBtnEl?.classList.toggle('active', state.matchMode === 'exact');
-}
-
-function setViewMode(viewMode, persist = true) {
-    state.viewMode = viewMode === 'list' ? 'list' : 'tree';
-
-    if (viewModeToggleBtnEl && viewModeToggleIconEl) {
-        if (state.viewMode === 'tree') {
-            viewModeToggleIconEl.className = 'codicon codicon-list-tree';
-            const title = getText('view.list', 'List View');
-            viewModeToggleBtnEl.setAttribute('title', title);
-            viewModeToggleBtnEl.setAttribute('aria-label', title);
-        } else {
-            viewModeToggleIconEl.className = 'codicon codicon-list-flat';
-            const title = getText('view.tree', 'Tree View');
-            viewModeToggleBtnEl.setAttribute('title', title);
-            viewModeToggleBtnEl.setAttribute('aria-label', title);
-        }
-    }
-
-    if (persist) {
-        const previousState = vscode.getState() || {};
-        vscode.setState({
-            ...previousState,
-            viewMode: state.viewMode
-        });
-    }
-
-    updateExpandToggleButton();
 }
 
 function updateExpandToggleButton() {
@@ -315,33 +371,13 @@ function hasCollapsibleNodes() {
         return false;
     }
 
-    if (state.viewMode === 'tree') {
-        const root = buildResultTree(state.displayedItems);
-        return root.folders.size > 0 || root.files.size > 0;
-    }
-
-    const groups = buildListFileGroups(state.displayedItems);
-    return groups.length > 0;
+    const root = buildResultTree(state.displayedItems);
+    return root.folders.size > 0 || root.files.size > 0;
 }
 
 function areAllCollapsibleNodesExpanded() {
     if (!state.displayedItems.length) {
         return false;
-    }
-
-    if (state.viewMode === 'list') {
-        const groups = buildListFileGroups(state.displayedItems);
-        if (!groups.length) {
-            return false;
-        }
-
-        for (const group of groups) {
-            if (!isNodeExpanded('list-file', group.filePath)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     const root = buildResultTree(state.displayedItems);
@@ -378,14 +414,6 @@ function areAllCollapsibleNodesExpanded() {
 
 function setAllNodesExpanded(expanded) {
     if (!state.displayedItems.length) {
-        return;
-    }
-
-    if (state.viewMode === 'list') {
-        const groups = buildListFileGroups(state.displayedItems);
-        groups.forEach((group) => {
-            setNodeExpanded('list-file', group.filePath, expanded);
-        });
         return;
     }
 
@@ -468,6 +496,48 @@ function updateClearButtonVisibility() {
 
     const hasValue = queryInputEl.value.trim().length > 0;
     searchBoxEl.classList.toggle('has-value', hasValue);
+}
+
+function applyWorkspaceSupportState() {
+    const unsupported = !state.workspaceSupported;
+    queryInputEl.disabled = unsupported;
+
+    if (clearQueryBtnEl) {
+        clearQueryBtnEl.disabled = unsupported;
+    }
+
+    if (fuzzyModeBtnEl) {
+        fuzzyModeBtnEl.disabled = unsupported;
+    }
+
+    if (exactModeBtnEl) {
+        exactModeBtnEl.disabled = unsupported;
+    }
+
+    if (toggleExpandBtnEl) {
+        toggleExpandBtnEl.disabled = unsupported;
+    }
+}
+
+function renderUnsupportedWorkspaceHint() {
+    resultListEl.innerHTML = '';
+    resetPagingState();
+
+    const item = document.createElement('li');
+    item.className = 'unsupported-workspace-item';
+
+    const icon = document.createElement('span');
+    icon.className = 'codicon codicon-warning unsupported-workspace-icon';
+    item.appendChild(icon);
+
+    const text = document.createElement('span');
+    text.className = 'unsupported-workspace-text';
+    text.textContent = getText('meta.unsupportedWorkspace', 'Current workspace is not a .NET project. Indexing is not started.');
+    item.appendChild(text);
+
+    resultListEl.appendChild(item);
+    resultMetaEl.textContent = '';
+    updateExpandToggleButton();
 }
 
 function buildResultTree(items) {
@@ -556,16 +626,11 @@ function setNodeExpanded(nodeType, path, expanded) {
     state.expandedNodeState[getNodeKey(nodeType, path)] = expanded === true;
 }
 
-function createCountBadge(count) {
-    const badge = document.createElement('span');
-    badge.className = 'result-tree-count';
-    badge.textContent = String(count);
-    return badge;
-}
-
 function createResultSymbolElement(item) {
     const li = document.createElement('li');
     li.className = 'result-symbol-item';
+    const itemKey = getResultItemKey(item);
+    li.classList.toggle('active', state.selectedResultKey === itemKey);
 
     const detail = document.createElement('span');
     detail.className = 'result-symbol-detail';
@@ -574,10 +639,18 @@ function createResultSymbolElement(item) {
     li.appendChild(detail);
 
     li.addEventListener('click', () => {
+        selectResultItem(item);
+        renderResults();
+    });
+
+    li.addEventListener('dblclick', () => {
         vscode.postMessage({
             type: 'openResult',
             uri: item.uri,
-            line: item.line
+            line: item.line,
+            preview: false,
+            preserveFocus: false,
+            openToSide: true
         });
     });
 
@@ -613,9 +686,10 @@ function createFolderElement(folderNode) {
 
     left.appendChild(createDisclosure(expanded));
 
-    const icon = document.createElement('span');
-    icon.className = 'result-tree-icon result-tree-icon--folder';
-    icon.textContent = '📁';
+    const folderIconDataUri = expanded && state.resultTreeIcons.folderExpandedIconDataUri
+        ? state.resultTreeIcons.folderExpandedIconDataUri
+        : state.resultTreeIcons.folderIconDataUri;
+    const icon = createImageIcon('result-tree-icon result-tree-icon--folder', folderIconDataUri, '📁');
     left.appendChild(icon);
 
     const label = document.createElement('span');
@@ -624,7 +698,6 @@ function createFolderElement(folderNode) {
     left.appendChild(label);
 
     row.appendChild(left);
-    row.appendChild(createCountBadge(folderNode.count));
     li.appendChild(row);
 
     const children = document.createElement('ul');
@@ -648,6 +721,12 @@ function createFolderElement(folderNode) {
         setNodeExpanded('folder', folderNode.path, !nextExpanded);
         const disclosure = row.querySelector('.result-tree-disclosure');
         updateDisclosureIcon(disclosure, !nextExpanded);
+        const nextIconDataUri = !nextExpanded && state.resultTreeIcons.folderExpandedIconDataUri
+            ? state.resultTreeIcons.folderExpandedIconDataUri
+            : state.resultTreeIcons.folderIconDataUri;
+        if (icon.classList.contains('result-tree-icon--image') && nextIconDataUri) {
+            icon.style.backgroundImage = `url(${nextIconDataUri})`;
+        }
     });
 
     li.appendChild(children);
@@ -667,9 +746,7 @@ function createFileElement(fileNode) {
     left.className = 'result-tree-left';
     left.appendChild(createDisclosure(expanded));
 
-    const icon = document.createElement('span');
-    icon.className = 'result-tree-icon result-tree-icon--file';
-    icon.textContent = 'C#';
+    const icon = createImageIcon('result-tree-icon result-tree-icon--file', state.resultTreeIcons.fileIconDataUri, 'C#');
     left.appendChild(icon);
 
     const label = document.createElement('span');
@@ -678,7 +755,6 @@ function createFileElement(fileNode) {
     left.appendChild(label);
 
     row.appendChild(left);
-    row.appendChild(createCountBadge(fileNode.count));
     li.appendChild(row);
 
     const symbols = document.createElement('ul');
@@ -716,7 +792,61 @@ function updateResultMeta() {
         return;
     }
 
+    if (!state.indexStatus.isReady && state.indexStatus.isIndexing) {
+        if (state.loadedResults > 0 && state.query) {
+            if (state.isTruncated) {
+                const limit = state.maxResults > 0 ? state.maxResults : state.loadedResults;
+                resultMetaEl.textContent = formatText(
+                    getText('meta.indexingPartialResultCountLimited', '{0} results found (limit {1} reached), indexing continues ({2}/{3})'),
+                    state.loadedResults,
+                    limit,
+                    state.indexStatus.indexedFiles,
+                    state.indexStatus.totalFiles
+                );
+                return;
+            }
+
+            resultMetaEl.textContent = formatText(
+                getText('meta.indexingPartialResultCount', '{0} results found, indexing continues ({1}/{2})'),
+                state.loadedResults,
+                state.indexStatus.indexedFiles,
+                state.indexStatus.totalFiles
+            );
+            return;
+        }
+
+        resultMetaEl.textContent = getIndexingMetaText();
+        return;
+    }
+
+    if (!state.indexStatus.isReady && state.query && state.loadedResults > 0) {
+        if (state.isTruncated) {
+            const limit = state.maxResults > 0 ? state.maxResults : state.loadedResults;
+            resultMetaEl.textContent = formatText(
+                getText('meta.indexingPartialResultCountLimited', '{0} results found (limit {1} reached), indexing continues ({2}/{3})'),
+                state.loadedResults,
+                limit,
+                state.indexStatus.indexedFiles,
+                state.indexStatus.totalFiles
+            );
+            return;
+        }
+
+        resultMetaEl.textContent = formatText(
+            getText('meta.indexingPartialResultCount', '{0} results found, indexing continues ({1}/{2})'),
+            state.loadedResults,
+            state.indexStatus.indexedFiles,
+            state.indexStatus.totalFiles
+        );
+        return;
+    }
+
     if (state.loadedResults <= 0) {
+        if (!state.indexStatus.isReady && state.query) {
+            resultMetaEl.textContent = getIndexingMetaText();
+            return;
+        }
+
         resultMetaEl.textContent = getText('meta.noResults', 'No results found');
         return;
     }
@@ -755,16 +885,9 @@ function updateResultMeta() {
 
 function renderResults() {
     resultListEl.innerHTML = '';
-    resultListEl.classList.toggle('mode-list', state.viewMode === 'list');
 
     if (!state.displayedItems.length) {
-        resultMetaEl.textContent = getText('meta.noResults', 'No results found');
-        updateExpandToggleButton();
-        return;
-    }
-
-    if (state.viewMode === 'list') {
-        renderListResults();
+        updateResultMeta();
         updateExpandToggleButton();
         return;
     }
@@ -784,125 +907,8 @@ function renderResults() {
     updateExpandToggleButton();
 }
 
-function renderListResults() {
-    const groups = buildListFileGroups(state.displayedItems);
-    groups.forEach((group) => {
-        resultListEl.appendChild(createListFileGroupElement(group));
-    });
-}
-
-function buildListFileGroups(items) {
-    const groupMap = new Map();
-
-    items.forEach((item) => {
-        const normalizedPath = normalizeRelativePath(item.relativePath);
-        const filePath = normalizedPath || item.relativePath || '';
-
-        if (!groupMap.has(filePath)) {
-            groupMap.set(filePath, {
-                filePath,
-                fileName: filePath.split('/').filter(Boolean).pop() || filePath,
-                matches: []
-            });
-        }
-
-        groupMap.get(filePath).matches.push(item);
-    });
-
-    const groups = Array.from(groupMap.values());
-    groups.sort((a, b) => a.filePath.localeCompare(b.filePath, undefined, { sensitivity: 'base' }));
-    groups.forEach((group) => {
-        group.matches.sort((a, b) => {
-            if (a.line !== b.line) {
-                return a.line - b.line;
-            }
-
-            return (a.symbolName || '').localeCompare(b.symbolName || '', undefined, { sensitivity: 'base' });
-        });
-    });
-
-    return groups;
-}
-
-function createListFileGroupElement(group) {
-    const li = document.createElement('li');
-    li.className = 'result-list-file-group';
-    const expanded = isNodeExpanded('list-file', group.filePath);
-
-    const fileRow = document.createElement('div');
-    fileRow.className = 'result-list-file-row';
-
-    const left = document.createElement('div');
-    left.className = 'result-list-main';
-
-    left.appendChild(createDisclosure(expanded));
-
-    const icon = document.createElement('span');
-    icon.className = 'result-symbol-icon';
-    icon.textContent = 'C#';
-
-    const name = document.createElement('span');
-    name.className = 'result-list-file-name';
-    name.textContent = group.fileName;
-
-    left.appendChild(icon);
-    left.appendChild(name);
-
-    const meta = document.createElement('span');
-    meta.className = 'result-list-file-meta';
-    meta.textContent = group.filePath;
-
-    const count = createCountBadge(group.matches.length);
-    count.classList.add('result-list-file-count');
-
-    fileRow.appendChild(left);
-    fileRow.appendChild(meta);
-    fileRow.appendChild(count);
-
-    const symbols = document.createElement('ul');
-    symbols.className = 'result-list-symbols';
-    symbols.hidden = !expanded;
-
-    group.matches.forEach((item) => {
-        symbols.appendChild(createListSymbolElement(item));
-    });
-
-    fileRow.addEventListener('click', () => {
-        const nextExpanded = !symbols.hidden;
-        symbols.hidden = nextExpanded;
-        setNodeExpanded('list-file', group.filePath, !nextExpanded);
-        const disclosure = fileRow.querySelector('.result-tree-disclosure');
-        updateDisclosureIcon(disclosure, !nextExpanded);
-    });
-
-    li.appendChild(fileRow);
-    li.appendChild(symbols);
-    return li;
-}
-
-function createListSymbolElement(item) {
-    const li = document.createElement('li');
-    li.className = 'result-list-symbol-item';
-
-    const detail = document.createElement('span');
-    detail.className = 'result-list-symbol-detail';
-    applyHighlightedText(detail, buildDetailText(item), state.query);
-
-    li.appendChild(detail);
-
-    li.addEventListener('click', () => {
-        vscode.postMessage({
-            type: 'openResult',
-            uri: item.uri,
-            line: item.line
-        });
-    });
-
-    return li;
-}
-
 function requestLoadMore() {
-    if (state.isLoadingMore || !state.hasMore || !state.query || !state.activeKindId || !state.indexStatus.isReady) {
+    if (state.isLoadingMore || !state.hasMore || !state.query || !state.activeKindId) {
         return;
     }
 
@@ -932,7 +938,7 @@ function tryLoadMoreIfNeeded() {
     }
 }
 
-function applyHighlightedText(targetEl, text, query) {
+function applyHighlightedText(targetEl, text, query, highlightClass = 'result-highlight') {
     const normalizedText = typeof text === 'string' ? text : '';
     const normalizedQuery = typeof query === 'string' ? query.trim() : '';
     targetEl.textContent = '';
@@ -958,7 +964,7 @@ function applyHighlightedText(targetEl, text, query) {
 
         if (part.toLowerCase() === normalizedQuery.toLowerCase()) {
             const mark = document.createElement('span');
-            mark.className = 'result-highlight';
+            mark.className = highlightClass;
             mark.textContent = part;
             targetEl.appendChild(mark);
             return;
@@ -974,6 +980,23 @@ function escapeRegExp(value) {
 
 function buildDetailText(item) {
     return item.preview;
+}
+
+function getResultItemKey(item) {
+    return `${item.uri}:${item.line}:${item.preview}`;
+}
+
+function selectResultItem(item) {
+    state.selectedItem = item;
+    state.selectedResultKey = getResultItemKey(item);
+    vscode.postMessage({
+        type: 'openResult',
+        uri: item.uri,
+        line: item.line,
+        preview: true,
+        preserveFocus: true,
+        openToSide: true
+    });
 }
 
 queryInputEl.addEventListener('input', () => {
@@ -1015,13 +1038,6 @@ matchModeGroupEl?.addEventListener('click', (event) => {
     triggerSearch();
 });
 
-viewModeToggleBtnEl?.addEventListener('click', () => {
-    const nextViewMode = state.viewMode === 'tree' ? 'list' : 'tree';
-    setViewMode(nextViewMode);
-    renderResults();
-    updateResultMeta();
-});
-
 toggleExpandBtnEl?.addEventListener('click', () => {
     if (!hasCollapsibleNodes()) {
         return;
@@ -1057,7 +1073,9 @@ window.addEventListener('message', (event) => {
         state.texts = message.texts && typeof message.texts === 'object' ? message.texts : {};
         state.searchDebounceMs = normalizeSearchDebounceMs(message.searchDebounceMs);
         state.pageSize = normalizePageSize(message.pageSize);
+        state.resultTreeIcons = normalizeResultTreeIcons(message.resultTreeIcons);
         state.indexStatus = normalizeIndexStatus(message.indexStatus);
+        resultsPaneTitleEl.textContent = getText('results.title', 'Search Results');
         updateInputPlaceholder();
         const clearInputText = getText('input.clear', 'Clear input');
         clearQueryBtnEl?.setAttribute('aria-label', clearInputText);
@@ -1073,12 +1091,12 @@ window.addEventListener('message', (event) => {
             exactModeBtnEl.setAttribute('title', getText('match.exact', 'Exact'));
         }
         setMatchMode(state.matchMode);
-        setViewMode(state.viewMode, false);
         updateExpandToggleButton();
         updateClearButtonVisibility();
+        applyWorkspaceSupportState();
         renderTabs();
         if (!state.workspaceSupported) {
-            resultMetaEl.textContent = getText('meta.unsupportedWorkspace', 'Current workspace is not a .NET project. Indexing is not started.');
+            renderUnsupportedWorkspaceHint();
             return;
         }
         if (!state.indexStatus.isReady) {
@@ -1136,6 +1154,8 @@ window.addEventListener('message', (event) => {
     if (message.type === 'configUpdated') {
         state.searchDebounceMs = normalizeSearchDebounceMs(message.searchDebounceMs);
         state.pageSize = normalizePageSize(message.pageSize);
+        state.resultTreeIcons = normalizeResultTreeIcons(message.resultTreeIcons);
+        renderResults();
         return;
     }
 
@@ -1149,7 +1169,11 @@ window.addEventListener('message', (event) => {
 
         if (!state.indexStatus.isReady) {
             clearIndexReadyHintTimer();
-            resultMetaEl.textContent = getIndexingMetaText();
+            if (queryInputEl.value.trim().length > 0) {
+                scheduleIndexingSearchRefresh();
+            }
+
+            updateResultMeta();
             return;
         }
 
@@ -1158,7 +1182,7 @@ window.addEventListener('message', (event) => {
         }
 
         if (!previousReady && queryInputEl.value.trim().length > 0) {
-            triggerSearch();
+            triggerSearch({ preserveResults: true });
         }
     }
 });

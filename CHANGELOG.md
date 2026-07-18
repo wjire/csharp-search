@@ -4,6 +4,28 @@
 
 ## English
 
+### [Unreleased]
+
+- No changes yet.
+
+### [1.1.0] - 2026-07-18
+
+#### Added
+
+- Workspace-scoped index cache files (hashed workspace key) to avoid cache overwrite across different projects.
+- First-index friendly hint in search meta (with progress) to clarify that the first build in a workspace may take longer.
+- Sidebar-native unsupported-workspace hint without popup interruption.
+
+#### Optimized
+
+- Initial indexing now excludes configured folders during file discovery and uses adaptive worker concurrency with larger batch size to improve large-workspace startup throughput.
+- Queries can return partial results before the initial index is complete, and the search view refreshes current results automatically while indexing continues.
+- Persisted index snapshots with validation (extension version/workspace key/index settings) and debounced atomic writes reduce cold-start indexing time after the first build.
+
+#### Changed
+
+- Result interaction is refined: single-click previews in editor and double-click opens as non-preview.
+
 ### [1.0.11] - 2026-02-23
 
 #### Fixed
@@ -79,10 +101,9 @@
 
 #### Changed
 
-- Search kinds are now split into `Type`, `Method`, `Member`, and `Impl`.
+- Search kinds are now split into `Type`, `Method`, and `Member`.
 - `Method` focuses on methods/constructors.
 - `Member` focuses on fields/properties.
-- `Impl` supports searching by implementation type name and interface/base type name.
 
 ### [1.0.2] - 2026-02-16
 
@@ -115,6 +136,28 @@
 - Click-to-open search results with line navigation.
 
 ## 中文
+
+### [未发布]
+
+- 暂无更新。
+
+### [1.1.0] - 2026-07-18
+
+#### 新增
+
+- 缓存文件改为按工作区隔离（基于工作区标识哈希命名），避免在多工作区切换时相互覆盖。
+- 搜索视图新增“首次建索引”友好提示（含进度），明确首次创建索引可能较慢。
+- 非 .NET 工作区提示改为侧边栏内容内展示，不再使用打断式弹窗。
+
+#### 优化
+
+- 首次索引在文件发现阶段排除配置目录，并采用自适应并发 worker 与更大批次处理，提升大型工作区索引速度。
+- 首次索引未完成时，查询可先返回已建立部分结果，且视图会随索引推进自动刷新。
+- 新增索引快照落盘与复用（校验扩展版本/工作区标识/索引配置），并采用防抖原子写入，降低首次构建之后的冷启动等待。
+
+#### 变更
+
+- 结果交互优化：单击在编辑器预览定位，双击固定打开（非预览）。
 
 ### [1.0.11] - 2026-02-23
 
@@ -191,10 +234,9 @@
 
 #### 变更
 
-- 搜索类别调整为 `类型`、`方法`、`成员`、`实现` 四类。
+- 搜索类别调整为 `类型`、`方法`、`成员` 三类。
 - `方法` 专注方法/构造函数。
 - `成员` 专注字段/属性。
-- `实现` 检索支持按实现类名及接口/基类名称查询。
 
 ### [1.0.2] - 2026-02-16
 

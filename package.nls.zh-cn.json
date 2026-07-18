@@ -1,12 +1,14 @@
 {
-  "extension.displayName": "C# Search",
-  "extension.description": "🔍 在独立活动栏视图中搜索 C# 类型、方法、成员与实现符号。",
-  "viewContainer.title": "C# Search",
-  "view.main.name": "C# Search",
-  "command.focusView.title": "C# Search：聚焦搜索视图",
-  "config.title": "C# Search",
-  "config.excludeFolders.markdownDescription": "用于从 C# 符号索引中排除的目录名列表。按目录名匹配，并对工作区路径任意层级生效。",
-  "config.searchDebounceMs.markdownDescription": "输入后发起搜索前的防抖时间（毫秒，范围 0-1000），默认 300。",
-  "config.pageSize.markdownDescription": "结果列表滚动加载时每页条数（范围 20-500），默认 100。",
-  "config.maxResults.markdownDescription": "单次查询返回结果上限（范围 50-1000），默认 500。"
+    "extension.displayName": "C# Search",
+    "extension.description": "🔍 在独立活动栏视图中搜索 C# 类型、方法与成员符号。",
+    "viewContainer.title": "C# Search",
+    "view.main.name": "C# Search",
+    "command.focusView.title": "C# Search：聚焦搜索视图",
+    "config.title": "C# Search",
+    "config.excludeFolders.markdownDescription": "用于从 C# 符号索引中排除的目录名列表。按目录名匹配，并对工作区路径任意层级生效。",
+    "config.searchDebounceMs.markdownDescription": "输入后发起搜索前的防抖时间（毫秒，范围 0-1000），默认 300。",
+    "config.updateDebounceMs.markdownDescription": "将文件变更批量应用到内存索引前的防抖时间（毫秒，范围 0-5000），默认 900。",
+    "config.persistDebounceMs.markdownDescription": "索引变化后写入磁盘快照前的防抖时间（毫秒，范围 0-10000），默认 1200。",
+    "config.pageSize.markdownDescription": "结果列表滚动加载时每页条数（范围 20-500），默认 100。",
+    "config.maxResults.markdownDescription": "单次查询返回结果上限（范围 50-1000），默认 500。"
 }

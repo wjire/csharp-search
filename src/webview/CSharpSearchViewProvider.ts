@@ -1,16 +1,18 @@
+import { createHash } from 'crypto';
 import * as vscode from 'vscode';
-import { SymbolSearchService } from '../search/SymbolSearchService';
-import { IndexStatus, SearchKindDefinition, SearchMatchMode, SerializableSearchResultItem } from '../search/types';
-import { WebviewContentBuilder } from './WebviewContentBuilder';
 import { lang } from '../languageManager';
-import { ImplementationSearcher } from '../search/searchers/ImplementationSearcher';
 import { MemberSearcher } from '../search/searchers/MemberSearcher';
 import { MethodSearcher } from '../search/searchers/MethodSearcher';
 import { TypeSearcher } from '../search/searchers/TypeSearcher';
+import { SymbolSearchService } from '../search/SymbolSearchService';
+import { IndexStatus, SearchKindDefinition, SearchMatchMode, SerializableSearchResultItem } from '../search/types';
+import { WebviewContentBuilder } from './WebviewContentBuilder';
 
 const CONFIG_SECTION = 'csharpSearch';
 const SEARCH_DEBOUNCE_MS_KEY = 'searchDebounceMs';
 const PAGE_SIZE_KEY = 'pageSize';
+const WORKBENCH_CONFIG_SECTION = 'workbench';
+const ICON_THEME_KEY = 'iconTheme';
 const DEFAULT_SEARCH_DEBOUNCE_MS = 300;
 const DEFAULT_PAGE_SIZE = 100;
 const MIN_SEARCH_DEBOUNCE_MS = 0;
@@ -50,6 +52,9 @@ interface OpenResultMessage {
     type: 'openResult';
     uri: string;
     line: number;
+    preview?: boolean;
+    preserveFocus?: boolean;
+    openToSide?: boolean;
 }
 
 interface ReadyMessage {
@@ -57,6 +62,17 @@ interface ReadyMessage {
 }
 
 type IncomingMessage = SearchMessage | LoadMoreMessage | OpenResultMessage | ReadyMessage;
+
+interface IconThemeContribution {
+    id: string;
+    path: string;
+}
+
+interface ResultTreeIcons {
+    fileIconDataUri?: string;
+    folderIconDataUri?: string;
+    folderExpandedIconDataUri?: string;
+}
 
 export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
     public static readonly viewType = 'csharpSearch.mainView';
@@ -93,11 +109,12 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
             if (
                 !event.affectsConfiguration(`${CONFIG_SECTION}.${SEARCH_DEBOUNCE_MS_KEY}`)
                 && !event.affectsConfiguration(`${CONFIG_SECTION}.${PAGE_SIZE_KEY}`)
+                && !event.affectsConfiguration(`${WORKBENCH_CONFIG_SECTION}.${ICON_THEME_KEY}`)
             ) {
                 return;
             }
 
-            this.postRuntimeConfigUpdate();
+            void this.postRuntimeConfigUpdate();
         });
     }
 
@@ -108,7 +125,6 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
     }
 
     public async resolveWebviewView(webviewView: vscode.WebviewView): Promise<void> {
-        this.currentWebview = webviewView.webview;
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [
@@ -116,6 +132,8 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
                 vscode.Uri.joinPath(this.context.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist')
             ]
         };
+
+        this.currentWebview = webviewView.webview;
 
         webviewView.onDidDispose(() => {
             if (this.currentWebview === webviewView.webview) {
@@ -125,6 +143,7 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
 
         webviewView.webview.onDidReceiveMessage(async (message: IncomingMessage) => {
             if (message.type === 'ready') {
+                this.resetSearchSessionState();
                 await this.postInitMessage(webviewView.webview);
                 return;
             }
@@ -141,23 +160,46 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
 
             if (message.type === 'openResult') {
                 await this.handleOpenResult(message);
+                return;
             }
         });
 
         webviewView.webview.html = await this.contentBuilder.build(webviewView.webview);
         await this.postInitMessage(webviewView.webview);
-
     }
 
-    private postRuntimeConfigUpdate(): void {
+    public async showPanel(): Promise<void> {
+        await vscode.commands.executeCommand('workbench.view.extension.csharpSearch');
+
+        const workspaceSupported = await this.isDotNetWorkspace();
+        if (!workspaceSupported) {
+            return;
+        }
+
+        try {
+            await vscode.commands.executeCommand(`${CSharpSearchViewProvider.viewType}.focus`);
+        } catch {
+            // Ignore if focus command is unavailable in current VS Code version.
+        }
+    }
+
+    private resetSearchSessionState(): void {
+        this.latestSearchSequence = 0;
+        this.cachedSearchResults = undefined;
+    }
+
+    private async postRuntimeConfigUpdate(): Promise<void> {
         if (!this.currentWebview) {
             return;
         }
 
+        const resultTreeIcons = await this.resolveResultTreeIcons();
+
         this.currentWebview.postMessage({
             type: 'configUpdated',
             searchDebounceMs: this.getSearchDebounceMs(),
-            pageSize: this.getPageSize()
+            pageSize: this.getPageSize(),
+            resultTreeIcons
         });
     }
 
@@ -176,6 +218,7 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
         const workspaceSupported = await this.isDotNetWorkspace();
         let kinds: SearchKindDefinition[] = [];
         let indexStatus: IndexStatus = EMPTY_INDEX_STATUS;
+        const resultTreeIcons = await this.resolveResultTreeIcons();
 
         if (workspaceSupported) {
             const searchService = await this.ensureSearchService();
@@ -190,9 +233,116 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
             texts: lang.getWebViewTexts(),
             searchDebounceMs: this.getSearchDebounceMs(),
             pageSize: this.getPageSize(),
+            resultTreeIcons,
             indexStatus,
             workspaceSupported
         });
+    }
+
+    private async resolveResultTreeIcons(): Promise<ResultTreeIcons> {
+        const iconThemeId = vscode.workspace.getConfiguration(WORKBENCH_CONFIG_SECTION).get<string>(ICON_THEME_KEY, '');
+        if (!iconThemeId || typeof iconThemeId !== 'string') {
+            return {};
+        }
+
+        const theme = this.findIconTheme(iconThemeId);
+        if (!theme) {
+            return {};
+        }
+
+        const themeJsonUri = vscode.Uri.joinPath(theme.extension.extensionUri, ...theme.contribution.path.replace(/\\/g, '/').split('/').filter(Boolean));
+        const parsedTheme = await this.readJsonc(themeJsonUri);
+        if (!parsedTheme || typeof parsedTheme !== 'object') {
+            return {};
+        }
+
+        const iconDefinitions = parsedTheme.iconDefinitions;
+        if (!iconDefinitions || typeof iconDefinitions !== 'object') {
+            return {};
+        }
+
+        const fileExtensions = parsedTheme.fileExtensions && typeof parsedTheme.fileExtensions === 'object'
+            ? parsedTheme.fileExtensions
+            : {};
+        const languageIds = parsedTheme.languageIds && typeof parsedTheme.languageIds === 'object'
+            ? parsedTheme.languageIds
+            : {};
+
+        const csDefinitionId = fileExtensions.cs ?? fileExtensions['.cs'] ?? languageIds.csharp ?? parsedTheme.file;
+        const folderDefinitionId = parsedTheme.folder;
+        const folderExpandedDefinitionId = parsedTheme.folderExpanded ?? folderDefinitionId;
+
+        return {
+            fileIconDataUri: await this.resolveThemeIconDataUri(themeJsonUri, iconDefinitions, csDefinitionId),
+            folderIconDataUri: await this.resolveThemeIconDataUri(themeJsonUri, iconDefinitions, folderDefinitionId),
+            folderExpandedIconDataUri: await this.resolveThemeIconDataUri(themeJsonUri, iconDefinitions, folderExpandedDefinitionId)
+        };
+    }
+
+    private findIconTheme(iconThemeId: string): { extension: vscode.Extension<any>; contribution: IconThemeContribution } | undefined {
+        for (const extension of vscode.extensions.all) {
+            const iconThemes = extension.packageJSON?.contributes?.iconThemes;
+            if (!Array.isArray(iconThemes)) {
+                continue;
+            }
+
+            const contribution = iconThemes.find((item: IconThemeContribution) => item?.id === iconThemeId && typeof item?.path === 'string');
+            if (contribution) {
+                return { extension, contribution };
+            }
+        }
+
+        return undefined;
+    }
+
+    private async readJsonc(uri: vscode.Uri): Promise<any> {
+        try {
+            const bytes = await vscode.workspace.fs.readFile(uri);
+            const rawText = Buffer.from(bytes).toString('utf8');
+            const withoutBlockComments = rawText.replace(/\/\*[\s\S]*?\*\//g, '');
+            const withoutLineComments = withoutBlockComments.replace(/^\s*\/\/.*$/gm, '');
+            const normalized = withoutLineComments.replace(/,\s*([}\]])/g, '$1');
+            return JSON.parse(normalized);
+        } catch {
+            return undefined;
+        }
+    }
+
+    private async resolveThemeIconDataUri(themeJsonUri: vscode.Uri, iconDefinitions: Record<string, any>, definitionId: unknown): Promise<string | undefined> {
+        if (typeof definitionId !== 'string' || definitionId.length === 0) {
+            return undefined;
+        }
+
+        const definition = iconDefinitions[definitionId];
+        const iconPath = typeof definition?.iconPath === 'string' ? definition.iconPath : '';
+        if (!iconPath) {
+            return undefined;
+        }
+
+        try {
+            const parentUri = this.getParentUri(themeJsonUri);
+            const iconUri = vscode.Uri.joinPath(parentUri, ...iconPath.replace(/\\/g, '/').split('/').filter(Boolean));
+            const bytes = await vscode.workspace.fs.readFile(iconUri);
+            const extension = iconPath.split('.').pop()?.toLowerCase() ?? '';
+            const mime = extension === 'svg'
+                ? 'image/svg+xml'
+                : extension === 'png'
+                    ? 'image/png'
+                    : extension === 'jpg' || extension === 'jpeg'
+                        ? 'image/jpeg'
+                        : extension === 'webp'
+                            ? 'image/webp'
+                            : 'application/octet-stream';
+            return `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`;
+        } catch {
+            return undefined;
+        }
+    }
+
+    private getParentUri(fileUri: vscode.Uri): vscode.Uri {
+        const separatorIndex = fileUri.path.lastIndexOf('/');
+        const parentPath = separatorIndex > 0 ? fileUri.path.slice(0, separatorIndex) : '/';
+        return fileUri.with({ path: parentPath });
     }
 
     private getSearchDebounceMs(): number {
@@ -360,12 +510,57 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
     }
 
     private async handleOpenResult(message: OpenResultMessage): Promise<void> {
-        const uri = vscode.Uri.parse(message.uri);
+        const preview = message.preview !== false;
+        const preserveFocus = message.preserveFocus === true;
+        const openToSide = message.openToSide !== false;
+
+        await this.openResultInEditor(message.uri, message.line, {
+            preview,
+            preserveFocus,
+            openToSide
+        });
+    }
+
+    private async openResultInEditor(
+        uriText: string,
+        line: number,
+        options: { preview: boolean; preserveFocus: boolean; openToSide: boolean }
+    ): Promise<void> {
+        const uri = vscode.Uri.parse(uriText);
         const document = await vscode.workspace.openTextDocument(uri);
-        const editor = await vscode.window.showTextDocument(document, { preview: true });
-        const position = new vscode.Position(message.line, 0);
+        const targetLine = Number.isFinite(line) ? Math.max(0, Math.round(line)) : 0;
+        const position = new vscode.Position(targetLine, 0);
+        const targetViewColumn = this.resolveTargetViewColumn(options.openToSide);
+        const editor = await vscode.window.showTextDocument(document, {
+            preview: options.preview,
+            preserveFocus: options.preserveFocus,
+            viewColumn: targetViewColumn,
+            selection: new vscode.Range(position, position)
+        });
         editor.selection = new vscode.Selection(position, position);
         editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+    }
+
+    private resolveTargetViewColumn(openToSide: boolean): vscode.ViewColumn | undefined {
+        if (!openToSide) {
+            return undefined;
+        }
+
+        const activeGroup = vscode.window.tabGroups.activeTabGroup;
+        const activeTabs = activeGroup?.tabs?.length ?? 0;
+        if (activeTabs === 0 && activeGroup?.viewColumn) {
+            return activeGroup.viewColumn;
+        }
+
+        const groups = vscode.window.tabGroups.all;
+        const rightMostGroupWithTabs = [...groups]
+            .reverse()
+            .find((group) => (group.tabs?.length ?? 0) > 0 && !!group.viewColumn);
+        if (rightMostGroupWithTabs?.viewColumn) {
+            return rightMostGroupWithTabs.viewColumn;
+        }
+
+        return vscode.ViewColumn.Beside;
     }
 
     private postSearchResults(
@@ -444,12 +639,28 @@ export class CSharpSearchViewProvider implements vscode.WebviewViewProvider, vsc
             return this.searchService;
         }
 
+        const workspaceKey = (vscode.workspace.workspaceFolders ?? [])
+            .map((folder) => folder.uri.toString())
+            .sort()
+            .join('|');
+        const extensionVersion = typeof this.context.extension.packageJSON?.version === 'string'
+            ? this.context.extension.packageJSON.version
+            : '0.0.0';
+        const workspaceKeyHash = createHash('sha256')
+            .update(workspaceKey || 'no-workspace')
+            .digest('hex')
+            .slice(0, 16);
+        const cacheFileUri = vscode.Uri.joinPath(this.context.globalStorageUri, `symbol-index-cache-${workspaceKeyHash}.json`);
+
         this.searchService = new SymbolSearchService([
             new TypeSearcher(),
             new MethodSearcher(),
-            new MemberSearcher(),
-            new ImplementationSearcher()
-        ]);
+            new MemberSearcher()
+        ], {
+            cacheFileUri,
+            extensionVersion,
+            workspaceKey
+        });
         this.indexStatusSubscription?.dispose();
         this.indexStatusSubscription = this.searchService.onDidChangeIndexStatus((status) => {
             this.postIndexStatusUpdate(status);
